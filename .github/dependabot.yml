@@ -1,0 +1,15 @@
+# Keeps the GitHub Actions used by ci.yml and release.yml up to date.
+# Python dependencies are version ranges in pyproject.toml, not pins, so they
+# are left out.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # One pull request per month for all action updates, not one per action.
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "CI"
