@@ -1,0 +1,22 @@
+model:
+  id: maia2-blitz
+  device: cuda
+  kwargs:
+    temperature: 1.0
+
+metadata:
+  mode: frozen
+  values:
+    bot_elo: 1500
+    opponent_elo: 1500
+    time_control: 300+3
+
+challenges:
+  variants: [standard]
+  speeds: [blitz]
+  rated: false
+  max_concurrent_games: 1
+
+runtime:
+  clock_safety_margin_seconds: 1.5
+  reconnect_max_seconds: 60

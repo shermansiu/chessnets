@@ -1,0 +1,106 @@
+name: Release
+
+# Pushing a tag v<version> releases both packages: full CI, build and license
+# checks, PyPI upload (plugin first) through Trusted Publishing, then a GitHub
+# Release with the CHANGELOG section as notes and the artifacts attached.
+# See docs/maintainers/releasing.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build and check
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: check
+        run: python scripts/release_check.py --tag "$GITHUB_REF_NAME" --notes-out release-notes.md
+      - run: pip install build twine
+      # Version sync, twine check --strict and the license check on every
+      # wheel and sdist; artifacts land in dist/<distribution name>/.
+      - run: scripts/publish_pypi.sh --outdir dist
+        env:
+          PYTHON_BIN: python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/
+            release-notes.md
+          if-no-files-found: error
+
+  publish-plugin:
+    name: Publish chessnets-lc0-protobuf to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Each PyPI project has its own environment: PyPI rejects two trusted
+    # publishers with identical repository, workflow and environment.
+    environment:
+      name: pypi-lc0-protobuf
+      url: https://pypi.org/project/chessnets-lc0-protobuf/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/chessnets-lc0-protobuf/
+
+  # The core goes second so its lc0-protobuf extra never points at a missing
+  # plugin release.
+  publish-core:
+    name: Publish chessnets to PyPI
+    needs: publish-plugin
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/chessnets/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/chessnets/
+
+  github-release:
+    name: Create GitHub Release
+    needs: [build, publish-core]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - run: >
+          gh release create "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --title "ChessNets $VERSION"
+          --notes-file release-notes.md
+          --verify-tag
+          $([ "$PRERELEASE" = true ] && echo --prerelease)
+          dist/chessnets-lc0-protobuf/* dist/chessnets/*
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}

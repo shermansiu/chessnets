@@ -1,0 +1,113 @@
+[build-system]
+requires = ["uv_build >= 0.11.23, <0.12.0"]
+build-backend = "uv_build"
+
+[project]
+name = "chessnets"
+# uv_build requires a static version; chessnets.__version__ reads it from the
+# installed package metadata. Change it only with scripts/sync_versions.py
+# (--bump <part> or --set <version>), which keeps the lc0-protobuf plugin in
+# lockstep.
+version = "0.1.0"
+authors = [
+  {name = "Sherman Siu"},
+]
+requires-python = ">=3.11"
+dependencies = [
+    "attrs",
+    "chess",
+    "dacite",
+    "huggingface-hub",
+    "numpy",
+    "pyyaml",
+    "safetensors",
+    "torch",
+    "tqdm",
+]
+description = "State-of-the-art models for playing chess and human move imitation."
+readme = "README.md"
+license = "Apache-2.0 AND MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Games/Entertainment :: Board Games",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+license-files = ["LICENSE", "LICENSES/*", "THIRD_PARTY_NOTICES.md"]
+
+[project.urls]
+Repository = "https://github.com/shermansiu/chessnets"
+
+[project.optional-dependencies]
+# Local development tooling
+dev = [
+  "pre-commit>=3.5",
+]
+
+# Allie models and pipelines
+allie = [
+  "transformers",
+]
+
+# UniMaia model reconstruction and LoRA checkpoints
+unimaia = [
+  "accelerate",
+  "peft",
+  "transformers",
+]
+
+# Maia2 model implementation and checkpoints
+maia2 = [
+    "einops",
+]
+
+# Text-generation pipelines (ChessGPT, Carlini, and OpenAI-compatible endpoints)
+text-generation = [
+    "jinja2",
+    "openai",
+    "outlines",
+    "packaging",
+    "transformers",
+]
+
+# Rich board display in Jupyter notebooks
+notebook = [
+    "ipython",
+]
+
+# ChessCLIP support
+chess-clip = [
+  "open-clip-torch",
+]
+
+# Lichess Bot API runner and notebook-friendly async client
+lichess-bot = [
+    "httpx>=0.27",
+]
+
+# Legacy Lc0/Maia-1 .pb.gz loading and conversion. The adapter is a separate,
+# GPL-3.0-or-later distribution (plugins/lc0-protobuf); nothing from it is
+# bundled in this package. It is discovered through an entry point.
+# Pinned to this exact version by scripts/sync_versions.py.
+lc0-protobuf = [
+    "chessnets-lc0-protobuf==0.1.0",
+]
+
+[project.scripts]
+chessnets = "chessnets.cli:main"
+# Standalone executable for chess GUIs and engine managers.
+chessnets-uci = "chessnets.play.uci:main"
+
+# Resolve the adapter from this checkout during development (uv only; ignored
+# by pip and absent from published metadata).
+[tool.uv.sources]
+chessnets-lc0-protobuf = { path = "plugins/lc0-protobuf", editable = true }
+
+[tool.uv.build-backend]
+module-name = "chessnets"
+module-root = "src"
+source-exclude = ["plugins/**"]
+
+[tool.ruff]
+target-version = "py311"

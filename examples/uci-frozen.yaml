@@ -1,0 +1,17 @@
+model:
+  id: maia2-blitz
+  device: cuda
+  kwargs:
+    temperature: 1.0
+
+metadata:
+  mode: frozen
+  values:
+    bot_elo: 1500
+    opponent_elo: 1500
+    time_control: 300+3
+
+engine:
+  name: Chessnets Maia2
+  author: chessnets
+  inference_timeout_seconds: 30

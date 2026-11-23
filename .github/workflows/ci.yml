@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # release.yml runs the full suite before anything is published.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and version sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Keep in step with the ruff-pre-commit rev in .pre-commit-config.yaml.
+      - run: pip install ruff==0.12.3
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: python scripts/sync_versions.py
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            plugins/lc0-protobuf/pyproject.toml
+      # The CPU wheel is a fraction of the size of the default CUDA build.
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      # Install the plugin in the same command so its exact chessnets pin
+      # resolves to this checkout rather than PyPI.
+      - run: >
+          pip install
+          ".[maia2,unimaia,allie,text-generation,chess-clip,lichess-bot,notebook]"
+          ./plugins/lc0-protobuf
+          pytest
+      - run: python -m pytest -q
+
+  package:
+    name: Build and license check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build twine
+      # Build-only: version sync, twine check --strict, and the license check
+      # on every wheel and sdist. Nothing is uploaded.
+      - run: scripts/publish_pypi.sh
+        env:
+          PYTHON_BIN: python

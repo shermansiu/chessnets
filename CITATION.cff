@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: >-
+  If you use ChessNets, please cite it as below, and also cite the papers
+  behind the specific models you use.
+type: software
+title: "ChessNets: State-of-the-art models for playing chess and human move imitation"
+authors:
+  - family-names: Siu
+    given-names: Sherman
+version: 0.1.0
+date-released: 2026-11-23
+license: Apache-2.0
+repository-code: "https://github.com/shermansiu/chessnets"
+abstract: >-
+  ChessNets is a PyTorch library that loads Lc0, Maia, Maia 2, UniMaia,
+  Allie, ChessGPT, and ChessCLIP checkpoints through one pipeline API, and
+  runs them as UCI engines or Lichess bots.
+keywords:
+  - chess
+  - human move prediction
+  - neural networks
+  - pytorch

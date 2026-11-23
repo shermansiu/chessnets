@@ -1,0 +1,45 @@
+[build-system]
+requires = ["uv_build >= 0.11.23, <0.12.0"]
+build-backend = "uv_build"
+
+[project]
+name = "chessnets-lc0-protobuf"
+# Must equal the chessnets version; managed by scripts/sync_versions.py.
+version = "0.1.0"
+description = "Optional legacy Lc0 protobuf adapter for ChessNets"
+authors = [
+  {name = "Sherman Siu"},
+]
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Games/Entertainment :: Board Games",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    # Uses ChessNets model internals, so the two are released in lockstep.
+    "chessnets==0.1.0",
+    "numpy",
+    # net_pb2.py is protoc 3.19 output, which needs at least that runtime.
+    "protobuf>=3.19",
+    "pyyaml",
+    "torch",
+]
+
+[project.urls]
+Repository = "https://github.com/shermansiu/chessnets"
+
+[project.entry-points."chessnets.lc0_checkpoint_loaders"]
+protobuf = "chessnets_lc0_protobuf.adapter:adapter"
+
+[tool.uv.build-backend]
+module-name = "chessnets_lc0_protobuf"
+module-root = "src"
+
+[tool.ruff.lint.per-file-ignores]
+"src/chessnets_lc0_protobuf/net_pb2.py" = ["E712"]
