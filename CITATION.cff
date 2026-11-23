@@ -9,6 +9,8 @@ authors:
     given-names: Sherman
 version: 0.1.0
 date-released: 2026-11-23
+# Concept DOI: always resolves to the latest version.
+doi: 10.5281/zenodo.24458166
 license: Apache-2.0
 repository-code: "https://github.com/shermansiu/chessnets"
 abstract: >-
