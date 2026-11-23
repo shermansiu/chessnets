@@ -12,6 +12,12 @@ It fails unless:
 
 Usage:
   scripts/release_check.py --tag v0.2.0 [--notes-out notes.md]
+  scripts/release_check.py --draft [--notes-out notes.md]
+
+--draft is for the release workflow's manual dry run between releases: the
+tag is taken from the package version, and an undated changelog is allowed
+(the notes come from the [Unreleased] section instead). Every other check
+still applies.
 
 With --notes-out, that changelog section is written to the file for the
 GitHub Release. If GITHUB_OUTPUT is set, ``version`` and ``prerelease``
@@ -60,10 +66,25 @@ def changelog_section(text: str, version: str) -> str:
     return body + "\n"
 
 
-def check(tag: str, root: pathlib.Path = ROOT) -> tuple[str, str]:
+def unreleased_section(text: str) -> str:
+    """Return the body of ``## [Unreleased]``, or a placeholder if it is empty."""
+    match = re.search(r"^## \[Unreleased\][ \t]*$", text, re.MULTILINE)
+    body = ""
+    if match:
+        rest = text[match.end() :]
+        end = re.search(r"^(## |\[[^\]]+\]: )", rest, re.MULTILINE)
+        body = (rest[: end.start()] if end else rest).strip()
+    return (body or "(No unreleased changes recorded.)") + "\n"
+
+
+def check(
+    tag: str | None, root: pathlib.Path = ROOT, *, draft: bool = False
+) -> tuple[str, str]:
     """Return ``(version, notes)``; raise ValueError listing every problem."""
     errors = list(sync_versions.check(root))
     version = sync_versions.core_version(root)
+    if tag is None:
+        tag = f"v{version}"
     if tag != f"v{version}":
         errors.append(f"tag {tag!r} does not match the package version v{version}")
     for path in (root / "pyproject.toml", root / "plugins/lc0-protobuf/pyproject.toml"):
@@ -85,10 +106,14 @@ def check(tag: str, root: pathlib.Path = ROOT) -> tuple[str, str]:
     if not changelog.exists():
         errors.append("CHANGELOG.md is missing")
     else:
+        text = changelog.read_text()
         try:
-            notes = changelog_section(changelog.read_text(), version)
+            notes = changelog_section(text, version)
         except ValueError as error:
-            errors.append(str(error))
+            if draft:
+                notes = unreleased_section(text)
+            else:
+                errors.append(str(error))
     if errors:
         raise ValueError("\n".join(errors))
     return version, notes
@@ -98,12 +123,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--tag", required=True, help="the release tag, e.g. v0.2.0")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--tag", help="the release tag, e.g. v0.2.0")
+    target.add_argument(
+        "--draft", action="store_true", help="dry run: allow an undated changelog"
+    )
     parser.add_argument("--notes-out", type=pathlib.Path)
     args = parser.parse_args(argv)
 
     try:
-        version, notes = check(args.tag)
+        version, notes = check(args.tag, draft=args.draft)
     except ValueError as error:
         print("Not ready to release:", file=sys.stderr)
         for line in str(error).splitlines():
@@ -116,7 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a") as file:
             file.write(f"version={version}\nprerelease={prerelease}\n")
-    print(f"Ready to release {args.tag} (prerelease: {prerelease}).")
+    what = f"Dry run for v{version}" if args.draft else f"Ready to release {args.tag}"
+    print(f"{what} (prerelease: {prerelease}).")
     return 0
 
 

@@ -19,6 +19,15 @@ If any step fails, nothing after it runs. A version cannot be re-uploaded to
 PyPI, so if the core upload fails after the plugin succeeded, fix the cause
 and re-run the failed jobs rather than tagging again.
 
+## Dry run
+
+Running the workflow by hand (*Actions → Release → Run workflow*, on `main`)
+runs CI, the release check with `--draft`, the build, and the artifact upload
+and download, then checks that the downloaded files are laid out as the
+publish jobs expect. Nothing is published. Do this after changing
+`release.yml` or merging a Dependabot update to the actions it uses, before
+the next tag.
+
 ## One-time setup
 
 1. On GitHub, create two environments (*Settings → Environments*): `pypi`

@@ -105,3 +105,26 @@ def test_repository_changelog_is_well_formed():
     text = (ROOT / "CHANGELOG.md").read_text()
     assert text.startswith("# Changelog")
     assert "## [Unreleased]" in text
+
+
+def test_draft_allows_an_undated_changelog(tmp_path):
+    changelog = "# Changelog\n\n## [Unreleased]\n\n- Pending.\n\n## [1.1.0] - 2026-12-01\n\n- Old.\n"
+    root = _repo(tmp_path, version="1.2.0", changelog=changelog)
+    with pytest.raises(ValueError, match="no '## \\[1.2.0\\]"):
+        MODULE.check("v1.2.0", root)
+    version, notes = MODULE.check(None, root, draft=True)
+    assert version == "1.2.0"
+    assert notes == "- Pending.\n"
+
+
+def test_draft_still_runs_the_other_checks(tmp_path):
+    root = _repo(tmp_path)
+    (root / "CITATION.cff").write_text("version: 0.0.1\n")
+    with pytest.raises(ValueError, match="CITATION.cff"):
+        MODULE.check(None, root, draft=True)
+
+
+def test_draft_with_empty_unreleased_uses_placeholder():
+    assert MODULE.unreleased_section(
+        "## [Unreleased]\n\n## [1.0.0] - 2026-01-01\n"
+    ) == ("(No unreleased changes recorded.)\n")

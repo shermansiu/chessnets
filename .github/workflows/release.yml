@@ -4,10 +4,15 @@ name: Release
 # checks, PyPI upload (plugin first) through Trusted Publishing, then a GitHub
 # Release with the CHANGELOG section as notes and the artifacts attached.
 # See docs/maintainers/releasing.md.
+#
+# Running it by hand (Actions -> Release -> Run workflow) is a dry run: CI,
+# build, and the artifact upload/download the publish jobs rely on, but nothing
+# is published. Use it after changing this file or the actions it uses.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,7 +34,12 @@ jobs:
         with:
           python-version: "3.11"
       - id: check
-        run: python scripts/release_check.py --tag "$GITHUB_REF_NAME" --notes-out release-notes.md
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            python scripts/release_check.py --tag "$GITHUB_REF_NAME" --notes-out release-notes.md
+          else
+            python scripts/release_check.py --draft --notes-out release-notes.md
+          fi
       - run: pip install build twine
       # Version sync, twine check --strict and the license check on every
       # wheel and sdist; artifacts land in dist/<distribution name>/.
@@ -44,8 +54,33 @@ jobs:
             release-notes.md
           if-no-files-found: error
 
+  # Only for a manual run: checks that the downloaded artifact has exactly the
+  # layout the publish and release jobs below expect.
+  dry-run:
+    name: Dry run (nothing published)
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - run: |
+          set -eu
+          for dir in dist/chessnets-lc0-protobuf dist/chessnets; do
+            ls "$dir"/*.whl "$dir"/*.tar.gz
+            [ "$(ls "$dir" | wc -l)" -eq 2 ] || { echo "expected one wheel and one sdist in $dir"; exit 1; }
+          done
+          test -s release-notes.md
+          echo "Release notes:"; cat release-notes.md
+          echo "A tag push would publish v$VERSION (prerelease: $PRERELEASE)."
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+
   publish-plugin:
     name: Publish chessnets-lc0-protobuf to PyPI
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
     # Each PyPI project has its own environment: PyPI rejects two trusted
@@ -67,6 +102,7 @@ jobs:
   # plugin release.
   publish-core:
     name: Publish chessnets to PyPI
+    if: github.event_name == 'push'
     needs: publish-plugin
     runs-on: ubuntu-latest
     environment:
@@ -84,6 +120,7 @@ jobs:
 
   github-release:
     name: Create GitHub Release
+    if: github.event_name == 'push'
     needs: [build, publish-core]
     runs-on: ubuntu-latest
     permissions:
