@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "chessnets-lc0-protobuf"
 # Must equal the chessnets version; managed by scripts/sync_versions.py.
-version = "0.1.0"
+version = "0.1.1"
 description = "Optional legacy Lc0 protobuf adapter for ChessNets"
 authors = [
   {name = "Sherman Siu"},
@@ -23,7 +23,7 @@ classifiers = [
 ]
 dependencies = [
     # Uses ChessNets model internals, so the two are released in lockstep.
-    "chessnets==0.1.0",
+    "chessnets==0.1.1",
     "numpy",
     # net_pb2.py is protoc 3.19 output, which needs at least that runtime.
     "protobuf>=3.19",
@@ -32,7 +32,11 @@ dependencies = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/shermansiu/chessnets"
+Documentation = "https://chessnets.readthedocs.io/"
 Repository = "https://github.com/shermansiu/chessnets"
+Changelog = "https://github.com/shermansiu/chessnets/blob/main/CHANGELOG.md"
+Issues = "https://github.com/shermansiu/chessnets/issues"
 
 [project.entry-points."chessnets.lc0_checkpoint_loaders"]
 protobuf = "chessnets_lc0_protobuf.adapter:adapter"

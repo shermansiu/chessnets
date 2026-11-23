@@ -5,6 +5,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/chessnets)](https://pypi.org/project/chessnets/)
 [![Downloads](https://static.pepy.tech/badge/chessnets/month)](https://pepy.tech/project/chessnets)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/shermansiu/chessnets/blob/main/LICENSE)
+[![Docs](https://readthedocs.org/projects/chessnets/badge/?version=latest)](https://chessnets.readthedocs.io/)
 [![DOI](https://zenodo.org/badge/1468422269.svg)](https://doi.org/10.5281/zenodo.24458166)
 
 State-of-the-art models for playing chess and imitating human moves, behind
@@ -122,7 +123,7 @@ If you use ChessNets in your research, please cite it:
   author  = {Siu, Sherman},
   title   = {{ChessNets}: State-of-the-art models for playing chess and human move imitation},
   year    = {2026},
-  version = {0.1.0},
+  version = {0.1.1},
   doi     = {10.5281/zenodo.24458166},
   url     = {https://github.com/shermansiu/chessnets},
   license = {Apache-2.0}
