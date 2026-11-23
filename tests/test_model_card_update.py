@@ -57,8 +57,17 @@ def test_maia1_card_preserves_sources_and_is_idempotent(tmp_path):
     assert (repo / "README.md").read_text(encoding="utf-8") == first
 
 
-def test_lc0_card_replaces_old_tail_without_maia_citation(tmp_path):
-    repo = _repo(tmp_path, "lc0-network", f"# Lc0 network\n\n{HEADING}\n\nstale\n")
+@pytest.mark.parametrize(
+    ("architecture", "transformer"),
+    [("BTLeelaZeroNet", True), ("SeLeelaZeroNet", False)],
+)
+def test_lc0_card_cites_by_architecture(tmp_path, architecture, transformer):
+    repo = _repo(
+        tmp_path,
+        "lc0-network",
+        f"# Lc0 network\n\n{HEADING}\n\nstale\n",
+        {"model_type": "lc0", "architectures": [architecture]},
+    )
 
     MODULE.update_model_card(repo, write=True, repository_id="owner/lc0-network")
     result = (repo / "README.md").read_text(encoding="utf-8")
@@ -67,6 +76,16 @@ def test_lc0_card_replaces_old_tail_without_maia_citation(tmp_path):
     assert result.count(HEADING) == 1
     assert "Leela Chess Zero project" in result
     assert "mcilroyyoung2020maia" not in result
+    assert ("monroe2026chessformer" in result) is transformer
+    assert ("monroe2024mastering" in result) is transformer
+    assert ("has no\npaper of its own" in result) is not transformer
+
+
+@pytest.mark.parametrize("config", [None, {"architectures": ["Unknown"]}])
+def test_lc0_card_needs_a_known_architecture(tmp_path, config):
+    repo = _repo(tmp_path, "lc0-network", "# Lc0 network\n", config)
+    with pytest.raises(SystemExit):
+        MODULE.update_model_card(repo, repository_id="owner/lc0-network")
 
 
 def test_family_override_and_crlf_normalization(tmp_path):

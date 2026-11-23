@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import pathlib
 
 from model_cards import common
@@ -35,14 +36,82 @@ Please cite the original Maia work:
 See the [official Maia repository](https://github.com/CSSLab/maia-chess) and
 [paper](https://arxiv.org/abs/2006.01855)."""
 
-_LC0_CITATION = """## Citation and attribution
+_LC0_ATTRIBUTION = """## Citation and attribution
 
 Credit the source network identified above and the
-[Leela Chess Zero project](https://lczero.org/). This community checkpoint does
-not have a model-specific paper citation until the official project supplies one."""
+[Leela Chess Zero project](https://lczero.org/)."""
+
+_LC0_SE_CITATION = (
+    _LC0_ATTRIBUTION
+    + """ This SE-ResNet network has no
+paper of its own."""
+)
+
+# Lc0's transformer networks (BTLeelaZeroNet in ChessNets) use the Chessformer
+# architecture.
+_LC0_TRANSFORMER_CITATION = (
+    _LC0_ATTRIBUTION
+    + """ This transformer network uses
+the Chessformer architecture; please also cite:
+
+```bibtex
+@misc{monroe2024mastering,
+  title         = {Mastering Chess with a Transformer Model},
+  author        = {Monroe, Daniel and Chalmers, Philip A.},
+  year          = {2024},
+  eprint        = {2409.12272},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2409.12272}
+}
+
+@inproceedings{monroe2026chessformer,
+  title     = {{Chessformer}: A Unified Architecture for Chess Modeling},
+  author    = {Monroe, Daniel and Eilender, George and Chalmers, Philip and Tang, Zhenwei and Anderson, Ashton},
+  booktitle = {International Conference on Learning Representations},
+  editor    = {C. Vondrick and B. Hariharan and C. Raffel and L. Pinto and D. Yang and A. Faust},
+  pages     = {36245--36271},
+  volume    = {2026},
+  year      = {2026},
+  url       = {https://proceedings.iclr.cc/paper_files/paper/2026/file/3d167db04a90885ad5208fe8b273668b-Paper-Conference.pdf}
+}
+```"""
+)
+
+TRANSFORMER_ARCHITECTURE = "BTLeelaZeroNet"
+SE_ARCHITECTURE = "SeLeelaZeroNet"
 
 
-def generated_section(repository_id: str, *, maia1: bool) -> str:
+def is_transformer(root: pathlib.Path) -> bool:
+    """Read the architecture from config.json; it decides the citation."""
+    config = root / "config.json"
+    if not config.is_file():
+        raise SystemExit(
+            f"error: {config} is missing; an Lc0 card needs it to tell a "
+            "transformer from an SE-ResNet network"
+        )
+    architectures = json.loads(config.read_text(encoding="utf-8")).get(
+        "architectures", []
+    )
+    if architectures == [TRANSFORMER_ARCHITECTURE]:
+        return True
+    if architectures == [SE_ARCHITECTURE]:
+        return False
+    raise SystemExit(
+        f"error: {config} has architectures {architectures!r}; expected "
+        f"[{TRANSFORMER_ARCHITECTURE!r}] or [{SE_ARCHITECTURE!r}]"
+    )
+
+
+def _citation(*, maia1: bool, transformer: bool) -> str:
+    if maia1:
+        return _MAIA1_CITATION
+    return _LC0_TRANSFORMER_CITATION if transformer else _LC0_SE_CITATION
+
+
+def generated_section(
+    repository_id: str, *, maia1: bool, transformer: bool = False
+) -> str:
     return f"""{GENERATED_HEADING}
 
 ```python
@@ -71,12 +140,12 @@ the source encoding.
 Review legal moves and probabilities in context. Outputs are not guarantees of
 playing strength, fairness, or suitability for high-stakes decisions.
 
-{_MAIA1_CITATION if maia1 else _LC0_CITATION}"""
+{_citation(maia1=maia1, transformer=transformer)}"""
 
 
 def update(root: pathlib.Path, *, write: bool, repository_id: str, maia1: bool) -> bool:
     current = common.read_readme(root, required=True)
-    updated = common.replace_tail(
-        current, GENERATED_HEADING, generated_section(repository_id, maia1=maia1)
-    )
+    transformer = False if maia1 else is_transformer(root)
+    section = generated_section(repository_id, maia1=maia1, transformer=transformer)
+    updated = common.replace_tail(current, GENERATED_HEADING, section)
     return common.write_or_preview(root, current, updated, write=write)
