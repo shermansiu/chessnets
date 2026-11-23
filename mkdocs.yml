@@ -1,0 +1,60 @@
+site_name: ChessNets
+site_description: State-of-the-art models for playing chess and imitating human moves, behind one PyTorch API.
+site_url: https://chessnets.readthedocs.io/
+repo_url: https://github.com/shermansiu/chessnets
+repo_name: shermansiu/chessnets
+edit_uri: edit/main/docs/
+copyright: Apache-2.0 licensed
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.sections
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+# The pip requirements file and a Hub model-card template are not pages.
+exclude_docs: |
+  requirements.txt
+  maintainers/lc0-maia-model-card-template.md
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Loading models: loading-models.md
+      - UCI engine: uci-engine.md
+      - Lichess bot: lichess-bot.md
+      - Checkpoint format and Lc0 conversion: checkpoint-format.md
+      - Working with board histories: board-history.md
+      - Efficient inference for small requests: inference-performance.md
+  - Models:
+      - models/README.md
+      - Maia-1: models/maia1.md
+      - Lc0 networks: models/lc0.md
+      - Maia 2: models/maia2.md
+      - UniMaia: models/unimaia.md
+      - Allie: models/allie.md
+      - ChessGPT: models/chessgpt.md
+      - ChessCLIP: models/chess-clip.md
+  - Maintainers:
+      - Releasing: maintainers/releasing.md
+      - Checkpoint repository migration: maintainers/checkpoint-migration.md

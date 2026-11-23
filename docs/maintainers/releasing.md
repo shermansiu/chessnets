@@ -2,7 +2,7 @@
 
 `chessnets` and `chessnets-lc0-protobuf` are released together with one
 version. Pushing a tag `v<version>` runs
-[`.github/workflows/release.yml`](../../.github/workflows/release.yml), which:
+[`.github/workflows/release.yml`](https://github.com/shermansiu/chessnets/blob/main/.github/workflows/release.yml), which:
 
 1. runs the full CI suite;
 2. checks the release with `scripts/release_check.py`: versions in sync, tag

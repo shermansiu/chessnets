@@ -53,7 +53,7 @@ legacy = AutoLc0Model.from_pretrained(path, checkpoint_format="protobuf")
 To use an Lc0 network that is only available as `model.pb.gz`, convert it once
 with the protobuf adapter. The adapter is GPL-3.0-or-later and distributed
 separately from the Apache-2.0 core (see
-[its README](../plugins/lc0-protobuf/README.md)):
+[its README](https://github.com/shermansiu/chessnets/blob/main/plugins/lc0-protobuf/README.md)):
 
 ```shell
 pip install "chessnets[lc0-protobuf]"

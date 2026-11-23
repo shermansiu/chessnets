@@ -15,4 +15,4 @@ Face model card.
 | ChessCLIP | [chess-clip.md](chess-clip.md) | `chess-clip` |
 
 To add a family, copy one of these pages; see
-[Contributing models and pipelines](../../CONTRIBUTING.md).
+[Contributing models and pipelines](https://github.com/shermansiu/chessnets/blob/main/CONTRIBUTING.md).

@@ -1,0 +1,3 @@
+# Documentation site build (Read the Docs and local `mkdocs serve`).
+mkdocs==1.6.1
+mkdocs-material==9.8.2
