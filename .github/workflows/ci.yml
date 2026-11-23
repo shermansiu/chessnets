@@ -52,7 +52,7 @@ jobs:
       # resolves to this checkout rather than PyPI.
       - run: >
           pip install
-          ".[maia2,unimaia,allie,text-generation,chess-clip,lichess-bot,notebook]"
+          ".[all]"
           ./plugins/lc0-protobuf
           pytest
       - run: python -m pytest -q

@@ -32,9 +32,16 @@ model families need an optional extra:
 | `chess-clip` | ChessCLIP |
 | `lichess-bot` | The Lichess Bot API runner |
 | `notebook` | Board rendering in Jupyter |
+| `all` | Everything above |
+| `lc0-protobuf` | Original Lc0 `.pb.gz` checkpoints (GPL-3.0-or-later plugin, not in `all`) |
 
 For example, `pip install "chessnets[maia2,lichess-bot]"`. If an extra is
 missing, the error message names the one to install.
+
+The `lc0-protobuf` plugin is kept out of `all` so that installing everything
+never brings in copyleft code. The converted safetensors checkpoints on the Hub
+don't need it; see
+[Checkpoint format and Lc0 conversion](https://github.com/shermansiu/chessnets/blob/main/docs/checkpoint-format.md).
 
 ## Quickstart
 

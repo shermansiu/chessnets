@@ -86,6 +86,13 @@ lichess-bot = [
     "httpx>=0.27",
 ]
 
+# Every extra above except dev. It deliberately leaves out lc0-protobuf, which
+# is GPL-3.0-or-later, so installing "all" never brings in copyleft code;
+# tests/test_extras.py keeps this list complete.
+all = [
+    "chessnets[allie,chess-clip,lichess-bot,maia2,notebook,text-generation,unimaia]",
+]
+
 # Legacy Lc0/Maia-1 .pb.gz loading and conversion. The adapter is a separate,
 # GPL-3.0-or-later distribution (plugins/lc0-protobuf); nothing from it is
 # bundled in this package. It is discovered through an entry point.
