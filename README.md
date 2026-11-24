@@ -8,8 +8,7 @@
 [![Docs](https://img.shields.io/readthedocs/chessnets/latest)](https://chessnets.readthedocs.io/)
 [![DOI](https://zenodo.org/badge/1468422269.svg)](https://doi.org/10.5281/zenodo.24458166)
 
-State-of-the-art models for playing chess and imitating human moves, behind
-one PyTorch API.
+Pretrained chess models and inference pipelines for playing chess and imitating human moves.
 
 ChessNets loads Lc0, Maia, Maia 2, UniMaia, Allie, ChessGPT, and ChessCLIP
 checkpoints from the Hugging Face Hub and turns games into move predictions.

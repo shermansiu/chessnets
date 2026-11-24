@@ -24,7 +24,7 @@ dependencies = [
     "torch",
     "tqdm",
 ]
-description = "State-of-the-art models for playing chess and human move imitation."
+description = "Pretrained chess models and inference pipelines for playing chess and imitating human moves."
 readme = "README.md"
 license = "Apache-2.0 AND MIT"
 classifiers = [
