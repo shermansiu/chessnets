@@ -33,7 +33,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/shermansiu/chessnets"
-Documentation = "https://chessnets.readthedocs.io/"
+Documentation = "https://chessnets.readthedocs.io/en/stable/checkpoint-format/#converting-an-lc0-network"
 Repository = "https://github.com/shermansiu/chessnets"
 Changelog = "https://github.com/shermansiu/chessnets/blob/main/CHANGELOG.md"
 Issues = "https://github.com/shermansiu/chessnets/issues"
