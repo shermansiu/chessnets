@@ -33,6 +33,20 @@ def test_pipeline_registry_import_is_lazy():
     assert "chessnets.pipelines.maia2.pipeline_maia2" not in modules
 
 
+def test_model_id_lookup_does_not_import_torch_or_pipelines():
+    # Tools like chesseval only read PIPELINE_INFOS to resolve model names.
+    modules = _run_import_check(
+        "from chessnets.pipelines import AutoPipeline, PIPELINE_INFOS",
+        "AutoPipeline.get_pipeline_info('maia-1500')",
+        "assert PIPELINE_INFOS",
+    )
+    assert "torch" not in modules
+    assert not any(
+        name.startswith("chessnets.pipelines.") and name.count(".") > 2
+        for name in modules
+    ), sorted(name for name in modules if name.startswith("chessnets.pipelines."))
+
+
 def test_maia2_support_modules_are_lazy_without_model_dependency():
     modules = _run_import_check(
         "import chessnets.models.maia2",

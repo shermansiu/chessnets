@@ -7,6 +7,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Importing `AutoPipeline` or `PIPELINE_INFOS` no longer imports PyTorch or
+  any pipeline, so looking up model names takes about 0.06 s instead of
+  about 1.7 s. Each pipeline is imported when it is first created.
+
 ## [0.1.1] - 2026-11-23
 
 ### Added

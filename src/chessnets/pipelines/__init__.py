@@ -1,8 +1,8 @@
 """Prediction pipelines and registries.
 
 The base pipeline types are lightweight and imported eagerly. The registry in
-``auto_pipeline`` imports every built-in pipeline (and PyTorch), so its exports
-load on first access.
+``auto_pipeline`` loads on first access; it imports each built-in pipeline (and
+PyTorch) only when that pipeline is created.
 """
 
 from __future__ import annotations

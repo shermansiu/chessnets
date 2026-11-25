@@ -1,4 +1,8 @@
-"""Lazy registry for published and externally registered chess pipelines."""
+"""Lazy registry for published and externally registered chess pipelines.
+
+Importing this module registers names only. Each factory imports its pipeline
+(and PyTorch) when called, so looking up model IDs stays fast.
+"""
 
 from __future__ import annotations
 
@@ -9,15 +13,6 @@ import pathlib
 import typing as tp
 
 from chessnets.utils.time_control import TimeInfoPromptStyle
-
-from .allie.pipeline_allie import AlliePipeline
-from .chess_clip.pipeline_chess_clip import ChessClipPipeline
-from .lc0.pipeline_lc0 import Lc0Pipeline
-from .unimaia.pipeline_unimaia import (
-    UniMaiaInputMode,
-    UniMaiaPipeline,
-    UniMaiaPipelineConfig,
-)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -45,6 +40,8 @@ def create_lc0_pipeline(
     device: tp.Any,
     **kwargs: tp.Any,
 ) -> tp.Any:
+    from .lc0.pipeline_lc0 import Lc0Pipeline
+
     return Lc0Pipeline.from_pretrained(model_id, device=device, **kwargs)
 
 
@@ -56,6 +53,8 @@ def create_unimaia_pipeline(
     dtype: tp.Any = None,
     **kwargs: tp.Any,
 ) -> tp.Any:
+    from .unimaia.pipeline_unimaia import UniMaiaPipeline
+
     return UniMaiaPipeline.from_pretrained(
         model_id,
         device=device,
@@ -72,6 +71,8 @@ def _published_unimaia_factory(
     default_time_info_prompt_style: TimeInfoPromptStyle = TimeInfoPromptStyle.REWRITTEN,
 ):
     def factory(device: tp.Any, **kwargs: tp.Any):
+        from .unimaia.pipeline_unimaia import UniMaiaInputMode, UniMaiaPipelineConfig
+
         input_mode = kwargs.pop("input_mode", None)
         pipeline_config = kwargs.pop(
             "pipeline_config",
@@ -93,6 +94,8 @@ def _published_unimaia_factory(
 
 
 def create_chess_clip_pipeline(device: tp.Any, **kwargs: tp.Any) -> tp.Any:
+    from .chess_clip.pipeline_chess_clip import ChessClipPipeline
+
     return ChessClipPipeline.from_pretrained(
         "Waterhorse/ChessCLIP", device=device, **kwargs
     )
@@ -443,19 +446,23 @@ def _create_maia2_from_architecture(
 
 
 def _create_allie(device: tp.Any, **kwargs: tp.Any):
+    from .allie.pipeline_allie import AlliePipeline
+
     return AlliePipeline.from_pretrained(**kwargs, device=device)
 
 
 def _create_allie_from_architecture(
     model_id: str | pathlib.Path, device: tp.Any, **kwargs: tp.Any
 ):
+    from .allie.pipeline_allie import AlliePipeline
+
     return AlliePipeline.from_pretrained(model_id, device=device, **kwargs)
 
 
 def _create_lc0_from_architecture(
     model_id: str | pathlib.Path, device: tp.Any, **kwargs: tp.Any
 ):
-    return Lc0Pipeline.from_pretrained(model_id, device=device, **kwargs)
+    return create_lc0_pipeline(model_id, device, **kwargs)
 
 
 def _create_unimaia_from_architecture(
