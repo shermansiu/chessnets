@@ -124,6 +124,8 @@ class AllieDataset(torch.utils.data.Dataset):
 
 
 class AlliePipeline(Pipeline):
+    auto_batch_sizes = {"cpu": 16, "cuda": 64}
+
     def __init__(
         self,
         model: allie_model.CausalLMWithRegressionHead,

@@ -94,6 +94,9 @@ GAME_OUTCOMES = ["1-0", "1/2-1/2", "0-1"]
 
 
 class Lc0Pipeline(Pipeline):
+    # Lc0 and Maia-1 networks are small enough for large batches.
+    auto_batch_sizes = {"cpu": 256, "cuda": 1024}
+
     def __init__(
         self,
         model: torch.nn.Module,

@@ -558,6 +558,8 @@ NEWLINE_CHESSGPT_TEMPLATE = "{{ (messages|selectattr('role', 'equalto', 'system'
 
 
 class HFTransformersProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
+    auto_batch_sizes = {"cpu": 4, "cuda": 8}
+
     def __init__(
         self,
         model_id: str,

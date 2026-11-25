@@ -109,6 +109,8 @@ class Maia2Dataset(torch.utils.data.Dataset):
 
 
 class Maia2Pipeline(Pipeline):
+    auto_batch_sizes = {"cpu": 256, "cuda": 1024}
+
     def __init__(
         self,
         model: Maia2Model,

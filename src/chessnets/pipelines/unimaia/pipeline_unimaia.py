@@ -282,6 +282,9 @@ all_termination_reasons = UNIMAIA_OUTCOME_LABELS
 
 
 class UniMaiaPipeline(Lc0Pipeline):
+    # UniMaia runs a language model next to the Lc0 network.
+    auto_batch_sizes = {"cpu": 8, "cuda": 8}
+
     def __init__(
         self,
         model: torch.nn.Module,

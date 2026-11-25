@@ -304,7 +304,21 @@ class PipelineInputConfig:
         return normalized
 
 
+BatchSize = tp.Union[int, tp.Literal["auto"]]
+"""A batch size, or ``"auto"`` to find one that fits in memory."""
+
+
 class Pipeline(abc.ABC):
+    auto_batch_sizes: tp.ClassVar[tp.Mapping[str, int]] = {"cpu": 16, "cuda": 16}
+    """The batch size ``batch_size="auto"`` starts from, by device type.
+
+    Device types without an entry use the ``cpu`` value. Pipelines override
+    this with sizes suited to their models.
+    """
+
+    last_batch_size: int | None = None
+    """The batch size the most recent call used."""
+
     def __init__(self, input_config: PipelineInputConfig | None = None):
         self.input_config = input_config or self.default_input_config()
 
@@ -337,7 +351,69 @@ class Pipeline(abc.ABC):
         pass
 
     def __call__(self, *args, **kwargs):
-        return self.make_prediction(*args, **kwargs)
+        """Predict, as :meth:`make_prediction` does.
+
+        ``batch_size="auto"`` starts from :attr:`auto_batch_sizes` for the
+        pipeline's device and halves the batch size whenever a batch runs out
+        of memory, retrying the call. The size that worked is kept for later
+        calls, and :attr:`last_batch_size` records it.
+        """
+        batch_size = kwargs.get("batch_size")
+        if batch_size != "auto":
+            if isinstance(batch_size, int):
+                self.last_batch_size = batch_size
+            return self.make_prediction(*args, **kwargs)
+        return self._make_prediction_with_auto_batch_size(*args, **kwargs)
+
+    def _make_prediction_with_auto_batch_size(self, *args, **kwargs):
+        import inspect
+        import logging
+
+        from .pipeline_utils import free_memory, is_out_of_memory_error
+
+        if "batch_size" not in inspect.signature(self.make_prediction).parameters:
+            kwargs.pop("batch_size")
+            return self.make_prediction(*args, **kwargs)
+
+        batch_size = getattr(self, "_found_batch_size", None)
+        if batch_size is None:
+            sizes = self.auto_batch_sizes
+            batch_size = sizes.get(self._device_type(), sizes.get("cpu", 16))
+        while True:
+            try:
+                result = self.make_prediction(
+                    *args, **{**kwargs, "batch_size": batch_size}
+                )
+            except Exception as error:
+                if batch_size == 1 or not is_out_of_memory_error(error):
+                    raise
+            else:
+                self._found_batch_size = batch_size
+                self.last_batch_size = batch_size
+                return result
+            # Free the failed batch's memory, now that the exception holding
+            # its tensors is gone, and try again with half as many items.
+            free_memory(collect_garbage=True)
+            logging.getLogger(__name__).warning(
+                "%s ran out of memory with a batch size of %d; retrying with %d",
+                type(self).__name__,
+                batch_size,
+                batch_size // 2,
+            )
+            batch_size //= 2
+
+    def _device_type(self) -> str:
+        """``cuda``, ``mps`` or ``cpu``: where the pipeline's model runs."""
+        device = getattr(self, "device", None)
+        if device is None:
+            model = getattr(self, "model", None)
+            device = getattr(model, "device", None)
+            if device is None and callable(getattr(model, "parameters", None)):
+                try:
+                    device = next(iter(model.parameters())).device
+                except (StopIteration, TypeError):
+                    device = None
+        return str(device or "cpu").split(":")[0]
 
     def notebook_display_prediction(self, pgn: str | list[str], *args, **kwargs):
         prediction = self.make_prediction(pgn, *args, **kwargs)
@@ -345,6 +421,7 @@ class Pipeline(abc.ABC):
 
 
 __all__ = [
+    "BatchSize",
     "Pipeline",
     "PipelineInputName",
     "PipelineInputConfig",

@@ -7,6 +7,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `batch_size="auto"` when calling a pipeline. It starts from a batch size
+  suited to the pipeline and its device, halves it whenever a batch runs out
+  of memory, and keeps the size that fits; `last_batch_size` records it.
+
 ### Changed
 
 - Importing `AutoPipeline` or `PIPELINE_INFOS` no longer imports PyTorch or

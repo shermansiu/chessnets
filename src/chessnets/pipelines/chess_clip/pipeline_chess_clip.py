@@ -103,6 +103,8 @@ class ChessClipDataset(torch.utils.data.Dataset):
 
 
 class ChessClipPipeline(Pipeline):
+    auto_batch_sizes = {"cpu": 64, "cuda": 256}
+
     def __init__(
         self,
         model: torch.nn.Module,
