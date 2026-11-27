@@ -13,7 +13,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from chessnets.models import lc0_policy_map
+from . import policy_map
 
 BOARD_SIZE = 64
 POLICY_PLANES = 80
@@ -83,7 +83,7 @@ class ConvPolicyHead(nn.Module):
         self.conv = nn.Conv2d(channels, POLICY_PLANES, 3, padding=1)
         self.register_buffer(
             "policy_indices",
-            torch.from_numpy(lc0_policy_map.convolution_policy_indices()),
+            torch.from_numpy(policy_map.convolution_policy_indices()),
             persistent=False,
         )
 

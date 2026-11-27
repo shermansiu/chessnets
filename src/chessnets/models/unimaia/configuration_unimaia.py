@@ -14,7 +14,7 @@ import typing as tp
 
 import yaml
 
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
+from chessnets.models.lc0 import configuration_lc0 as leela_config
 
 
 class TextEncoderType(leela_config.AutoStrEnum):

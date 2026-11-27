@@ -15,7 +15,7 @@ from chessnets.loaders.safetensors import (
     load_safetensors_file,
     resolve_safetensors_checkpoint,
 )
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
+from chessnets.models.lc0 import configuration_lc0 as leela_config
 from chessnets.models.unimaia.configuration_unimaia import (
     TextEncoderType,
     UniMaiaConfig,
@@ -271,9 +271,9 @@ def load_unimaia_model(
 
     lc0_config_path = config.lc0_config_path
     if config.lc0_config is not None:
-        lc0_config = leela_config.LeelaInferenceConfig.from_dict(config.lc0_config)
+        lc0_config = leela_config.Lc0InferenceConfig.from_dict(config.lc0_config)
     elif lc0_config_path is None:
-        lc0_config = leela_config.LeelaNetConfig.from_pretrained(
+        lc0_config = leela_config.Lc0Config.from_pretrained(
             config.lc0_model_id, **artifact_kwargs
         )
     else:
@@ -281,9 +281,9 @@ def load_unimaia_model(
             lc0_config_path = str(local_root / lc0_config_path)
         lc0_path = pathlib.Path(lc0_config_path)
         lc0_config = (
-            leela_config.LeelaInferenceConfig.from_json(lc0_path)
+            leela_config.Lc0InferenceConfig.from_json(lc0_path)
             if lc0_path.suffix == ".json"
-            else leela_config.LeelaInferenceConfig.from_yaml(lc0_path)
+            else leela_config.Lc0InferenceConfig.from_yaml(lc0_path)
         )
 
     text_config_source = config.llm_config_path or config.llm_model_id

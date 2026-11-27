@@ -43,6 +43,16 @@ def test_config_architecture_dispatch_passes_source_and_loader_kwargs(tmp_path):
     }
 
 
+@pytest.mark.parametrize(
+    "architecture",
+    ["Lc0ChessFormerModel", "Lc0SeResNetModel", "BTLeelaZeroNet", "SeLeelaZeroNet"],
+)
+def test_lc0_architectures_include_pre_0_2_class_names(architecture):
+    # Checkpoints converted before 0.2.0 name the old classes in config.json.
+    info = AutoPipeline.get_architecture_info(architecture)
+    assert info.architecture in {"Lc0ChessFormerModel", "Lc0SeResNetModel"}
+
+
 def test_exact_id_registration_precedes_config_metadata(tmp_path):
     # Exact registrations must not inspect metadata at all; this is malformed
     # on purpose to catch an accidental config read before the registry lookup.

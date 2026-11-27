@@ -1,4 +1,4 @@
-"""Attention-based Lc0 model components.
+"""Lc0 ChessFormer networks (the transformer architecture Lc0 calls BT).
 
 Original ChessNets implementation. The architecture was derived by exporting Lc0
 checkpoints to ONNX, inspecting the graph, and validating outputs numerically
@@ -12,8 +12,8 @@ import attrs
 import torch
 from torch import nn
 
-from chessnets.models.lc0_cf import layers_lc0_cf as layers
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
+from chessnets.models.lc0 import configuration_lc0 as leela_config
+from chessnets.models.lc0 import layers_lc0_chessformer as layers
 
 
 @attrs.frozen
@@ -48,10 +48,10 @@ def optional_apply_triple(func: tp.Callable | None, x: torch.Tensor):
     return func(x)
 
 
-class BTLeelaZeroNet(nn.Module):
+class Lc0ChessFormerModel(nn.Module):
     def __init__(
         self,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
     ):
         super().__init__()
         deep_norm = layers.DeepNorm(config.model.encoder_layers)
@@ -134,13 +134,13 @@ class BTLeelaZeroNet(nn.Module):
         self.default_activation_fn = config.model.default_activation_fn
         self.config = config
 
-        if config.model.policy is not leela_config.LeelaPolicy.attention:
-            raise ValueError("BTLeelaZeroNet requires an attention policy config")
+        if config.model.policy is not leela_config.Lc0Policy.attention:
+            raise ValueError("Lc0ChessFormerModel requires an attention policy config")
         if config.model.encoder_layers <= 0:
-            raise ValueError("BTLeelaZeroNet requires at least one encoder layer")
+            raise ValueError("Lc0ChessFormerModel requires at least one encoder layer")
 
     @classmethod
-    def from_config(cls, config: leela_config.LeelaNetConfig) -> "BTLeelaZeroNet":
+    def from_config(cls, config: leela_config.Lc0Config) -> "Lc0ChessFormerModel":
         """Initialize an attention Lc0 network from architecture config."""
         return cls(config=config)
 
@@ -199,7 +199,7 @@ class BTLeelaZeroNet(nn.Module):
 
 
 __all__ = [
-    "BTLeelaZeroNet",
+    "Lc0ChessFormerModel",
     "MultiValueModelOutput",
     "optional_apply",
     "optional_apply_triple",

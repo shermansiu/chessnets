@@ -15,20 +15,22 @@ from chessnets.loaders.safetensors import (
     load_safetensors_file,
     resolve_safetensors_checkpoint,
 )
-from chessnets.models.lc0_cf import modeling_lc0_cf
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
-from chessnets.models.lc0_senet import modeling_lc0_senet
+from chessnets.models.lc0 import configuration_lc0 as leela_config
+from chessnets.models.lc0 import modeling_lc0_chessformer, modeling_lc0_seresnet
 
-Lc0Model = modeling_lc0_cf.BTLeelaZeroNet | modeling_lc0_senet.SeLeelaZeroNet
+Lc0Model = (
+    modeling_lc0_chessformer.Lc0ChessFormerModel
+    | modeling_lc0_seresnet.Lc0SeResNetModel
+)
 
 
 def _model_from_config(
-    config: leela_config.LeelaNetConfig | leela_config.LeelaInferenceConfig,
+    config: leela_config.Lc0Config | leela_config.Lc0InferenceConfig,
 ) -> Lc0Model:
-    if config.model.policy is leela_config.LeelaPolicy.attention:
-        return modeling_lc0_cf.BTLeelaZeroNet.from_config(config)
-    if config.model.policy is leela_config.LeelaPolicy.convolution:
-        return modeling_lc0_senet.SeLeelaZeroNet.from_config(config)
+    if config.model.policy is leela_config.Lc0Policy.attention:
+        return modeling_lc0_chessformer.Lc0ChessFormerModel.from_config(config)
+    if config.model.policy is leela_config.Lc0Policy.convolution:
+        return modeling_lc0_seresnet.Lc0SeResNetModel.from_config(config)
     raise ValueError(f"Unsupported Lc0 policy architecture: {config.model.policy!r}")
 
 
@@ -85,7 +87,7 @@ def load_pretrained_model(
                 if requested_path.exists() and requested_path.is_file()
                 else model_id
             )
-            config = leela_config.LeelaNetConfig.from_pretrained(
+            config = leela_config.Lc0Config.from_pretrained(
                 config_source, **resolve_kwargs
             )
             state_dict = load_safetensors_file(checkpoint, device=device)

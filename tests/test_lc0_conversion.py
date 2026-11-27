@@ -2,11 +2,11 @@ import json
 
 from chessnets.loaders import load_lc0_model
 from chessnets.loaders.convert_lc0 import convert_checkpoint
-from chessnets.models.lc0_senet.configuration_lc0_senet import (
-    LeelaInferenceConfig,
-    LeelaNetModelConfig,
+from chessnets.models.lc0.configuration_lc0 import (
+    Lc0InferenceConfig,
+    Lc0ModelConfig,
 )
-from chessnets.models.lc0_senet.modeling_lc0_senet import SeLeelaZeroNet
+from chessnets.models.lc0.modeling_lc0_seresnet import Lc0SeResNetModel
 
 
 class _FakeProtobufAdapter:
@@ -21,7 +21,7 @@ class _FakeProtobufAdapter:
         }
 
     def load_model(self, model_path, config_path, *, is_eval=True):
-        model = SeLeelaZeroNet.from_config(self.config)
+        model = Lc0SeResNetModel.from_config(self.config)
         if is_eval:
             model.eval()
         return model
@@ -34,8 +34,8 @@ def test_converter_writes_portable_artifacts_and_sanitized_provenance(
     output = tmp_path / "output"
     source.mkdir()
     (source / "model.pb.gz").write_bytes(b"test protobuf placeholder")
-    config = LeelaInferenceConfig(
-        model=LeelaNetModelConfig(filters=8, residual_blocks=1, se_ratio=2)
+    config = Lc0InferenceConfig(
+        model=Lc0ModelConfig(filters=8, residual_blocks=1, se_ratio=2)
     )
     (source / "config.yaml").write_text(
         "model:\n  filters: 8\n  residual_blocks: 1\n  se_ratio: 2\n",

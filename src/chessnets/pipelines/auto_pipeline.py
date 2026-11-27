@@ -418,8 +418,18 @@ def _register_builtins() -> None:
 
     # These names are model class names, matching the Transformers-style
     # ``architectures`` metadata. Keep the mapping explicit and static.
-    AutoPipeline.register_architecture("BTLeelaZeroNet", _create_lc0_from_architecture)
-    AutoPipeline.register_architecture("SeLeelaZeroNet", _create_lc0_from_architecture)
+    # The aliases are the class names before 0.2.0, still written in the
+    # config.json of checkpoints converted with earlier releases.
+    AutoPipeline.register_architecture(
+        "Lc0ChessFormerModel",
+        _create_lc0_from_architecture,
+        aliases=("BTLeelaZeroNet",),
+    )
+    AutoPipeline.register_architecture(
+        "Lc0SeResNetModel",
+        _create_lc0_from_architecture,
+        aliases=("SeLeelaZeroNet",),
+    )
     AutoPipeline.register_architecture(
         "UniMaiaModel", _create_unimaia_from_architecture
     )

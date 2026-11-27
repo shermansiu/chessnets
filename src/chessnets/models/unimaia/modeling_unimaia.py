@@ -8,14 +8,14 @@ import torch
 from torch import nn
 
 from chessnets._optional import optional_module
-from chessnets.models.lc0_cf import layers_lc0_cf as layers
-from chessnets.models.lc0_cf.modeling_lc0_cf import (
-    BTLeelaZeroNet,
+from chessnets.models.lc0 import configuration_lc0 as leela_config
+from chessnets.models.lc0 import layers_lc0_chessformer as layers
+from chessnets.models.lc0.modeling_lc0_chessformer import (
+    Lc0ChessFormerModel,
     MultiValueModelOutput,
     optional_apply,
     optional_apply_triple,
 )
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
 from chessnets.models.unimaia import configuration_unimaia as unimaia_config
 from chessnets.utils import decode_policy
 
@@ -23,10 +23,10 @@ peft = optional_module("peft", "unimaia")
 transformers = optional_module("transformers", "unimaia")
 
 
-class UniMaiaModel(BTLeelaZeroNet):
+class UniMaiaModel(Lc0ChessFormerModel):
     def __init__(
         self,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
         umt_config: unimaia_config.UniMaiaConfig,
         text_encoder: tp.Any,
     ):
@@ -296,7 +296,7 @@ class UniMaiaModel(BTLeelaZeroNet):
     @classmethod
     def from_config(
         cls,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
         umt_config: unimaia_config.UniMaiaConfig,
         text_encoder: tp.Any,
     ) -> "UniMaiaModel":

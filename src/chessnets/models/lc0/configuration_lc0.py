@@ -1,3 +1,9 @@
+"""Configuration for Lc0 and Maia-1 networks.
+
+``Lc0InferenceConfig`` is the ``config.json`` shipped with published checkpoints;
+``Lc0Config`` is the full lczero-training YAML configuration.
+"""
+
 import bisect
 import dataclasses
 import enum
@@ -24,22 +30,22 @@ class AutoStrEnum(str, enum.Enum):
         return name
 
 
-class LeelaPolicy(AutoStrEnum):
+class Lc0Policy(AutoStrEnum):
     classical = enum.auto()
     convolution = enum.auto()
     attention = enum.auto()
 
 
-class LeelaValue(AutoStrEnum):
+class Lc0Value(AutoStrEnum):
     classical = enum.auto()
     wdl = enum.auto()
 
     @property
     def is_wdl(self):
-        return self == LeelaValue.wdl
+        return self == Lc0Value.wdl
 
 
-class LeelaInput(AutoStrEnum):
+class Lc0Input(AutoStrEnum):
     classic = enum.auto()
     frc_castling = enum.auto()
     canonical = enum.auto()
@@ -53,7 +59,7 @@ def identity_function(value):
     return value
 
 
-class LeelaActivation(AutoStrEnum):
+class Lc0Activation(AutoStrEnum):
     """Leela network non-linear activations.
 
     See https://www.tensorflow.org/api_docs/python/tf/keras/activations
@@ -76,70 +82,70 @@ class LeelaActivation(AutoStrEnum):
     @property
     def as_fn(self):
         match self:
-            case LeelaActivation.elu:
+            case Lc0Activation.elu:
                 return torch.nn.functional.elu
-            case LeelaActivation.exponential:
+            case Lc0Activation.exponential:
                 return torch.exp
-            case LeelaActivation.gelu:
+            case Lc0Activation.gelu:
                 return torch.nn.functional.gelu
-            case LeelaActivation.hard_sigmoid:
+            case Lc0Activation.hard_sigmoid:
                 return torch.nn.functional.hardsigmoid
-            case LeelaActivation.linear:
+            case Lc0Activation.linear:
                 return identity_function
-            case LeelaActivation.mish:
+            case Lc0Activation.mish:
                 return torch.nn.functional.mish
-            case LeelaActivation.relu:
+            case Lc0Activation.relu:
                 return torch.nn.functional.relu
-            case LeelaActivation.selu:
+            case Lc0Activation.selu:
                 return torch.nn.functional.selu
-            case LeelaActivation.sigmoid:
+            case Lc0Activation.sigmoid:
                 return torch.nn.functional.sigmoid
-            case LeelaActivation.softmax:
+            case Lc0Activation.softmax:
                 return torch.nn.functional.softmax
-            case LeelaActivation.softsign:
+            case Lc0Activation.softsign:
                 return torch.nn.functional.softsign
-            case LeelaActivation.swish:
+            case Lc0Activation.swish:
                 return torch.nn.functional.silu
-            case LeelaActivation.tanh:
+            case Lc0Activation.tanh:
                 return torch.nn.functional.tanh
             case _:
                 return identity_function
 
 
-class LeelaEmbeddingStyle(AutoStrEnum):
+class Lc0EmbeddingStyle(AutoStrEnum):
     new = enum.auto()
     old = enum.auto()
 
 
-class LeelaMovesLeft(AutoStrEnum):
+class Lc0MovesLeft(AutoStrEnum):
     none = enum.auto()
     v1 = enum.auto()
 
     @property
     def is_enabled(self):
-        return self == LeelaMovesLeft.v1
+        return self == Lc0MovesLeft.v1
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaNetModelConfig:
+class Lc0ModelConfig:
     arc_encoding: bool = False
     categorical_value_buckets: int = 0
-    default_activation: LeelaActivation | None = LeelaActivation.mish
+    default_activation: Lc0Activation | None = Lc0Activation.mish
     dropout_rate: float = 0.0
     embedding_dense_sz: int = 128
     embedding_size: int = 768
-    embedding_style: LeelaEmbeddingStyle = LeelaEmbeddingStyle.new
+    embedding_style: Lc0EmbeddingStyle = Lc0EmbeddingStyle.new
     encoder_layers: int = 15
     encoder_heads: int = 24
     encoder_d_model: int = 768
     encoder_dff: int = 1024
-    ffn_activation: LeelaActivation | None = LeelaActivation.mish  # None means linear
+    ffn_activation: Lc0Activation | None = Lc0Activation.mish  # None means linear
     filters: int = 64
-    input_type: LeelaInput = LeelaInput.classic
-    moves_left: LeelaMovesLeft = LeelaMovesLeft.none
+    input_type: Lc0Input = Lc0Input.classic
+    moves_left: Lc0MovesLeft = Lc0MovesLeft.none
     moves_left_embedding_size: int = 8
     omit_qkv_biases: bool = False
-    policy: LeelaPolicy = LeelaPolicy.convolution
+    policy: Lc0Policy = Lc0Policy.convolution
     policy_channels: int = 32
     policy_d_aux: int = 768
     policy_d_model: int = 768
@@ -150,18 +156,16 @@ class LeelaNetModelConfig:
     residual_blocks: int = 6
     se_ratio: int = 8
     skip_first_ln: bool = False
-    smolgen_activation: LeelaActivation | None = (
-        LeelaActivation.linear
-    )  # None means linear
+    smolgen_activation: Lc0Activation | None = Lc0Activation.linear  # None means linear
     smolgen_gen_sz: int = 256
     smolgen_hidden_channels: int = 32
     smolgen_hidden_sz: int = 256
     soft_policy: bool = False
     soft_policy_temperature: float = 4.0
     use_smolgen: bool = True
-    value: LeelaValue = LeelaValue.wdl
-    value_st_type: LeelaValue = (
-        LeelaValue.wdl
+    value: Lc0Value = Lc0Value.wdl
+    value_st_type: Lc0Value = (
+        Lc0Value.wdl
     )  # Not in original. Added for the ability to fully load BT3 weights.
     value_st_cat: bool = (
         True  # Not in original. Added for the ability to fully load BT3 weights.
@@ -174,7 +178,7 @@ class LeelaNetModelConfig:
     value_st: bool = False
 
     @classmethod
-    def from_dict(cls, values: dict[str, tp.Any]) -> "LeelaNetModelConfig":
+    def from_dict(cls, values: dict[str, tp.Any]) -> "Lc0ModelConfig":
         return dacite.from_dict(
             data_class=cls,
             data=dict(values),
@@ -205,18 +209,18 @@ def game_number_for_name(name):
     return int(num_str)
 
 
-class LeelaSortType(AutoStrEnum):
+class Lc0SortType(AutoStrEnum):
     mtime = enum.auto()
     number = enum.auto()
     name = enum.auto()
 
     def fn(self):
         match self:
-            case LeelaSortType.mtime:
+            case Lc0SortType.mtime:
                 return os.path.getmtime
-            case LeelaSortType.number:
+            case Lc0SortType.number:
                 return game_number_for_name
-            case LeelaSortType.name:
+            case Lc0SortType.name:
                 return identity_function
             case _:
                 raise ValueError(f"Unknown dataset sort_type: {self}")
@@ -233,12 +237,12 @@ def optional_pathlist(
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaNetDatasetConfig:
+class Lc0DatasetConfig:
     num_chunks: int
     train_ratio: float
     allow_less_chunks: bool = False
     fast_chunk_loading = True
-    sort_type: LeelaSortType = LeelaSortType.mtime
+    sort_type: Lc0SortType = Lc0SortType.mtime
     input_train: list[pathlib.Path] | None = None
     input_validation: list[pathlib.Path] | None = None
     input_test: list[pathlib.Path] | None = None
@@ -255,22 +259,22 @@ class LeelaNetDatasetConfig:
             object.__setattr__(self, field_name, paths)
 
 
-class LeelaPrecision(AutoStrEnum):
+class Lc0Precision(AutoStrEnum):
     single = enum.auto()
     half = enum.auto()
 
     @property
     def dtype(self) -> torch.dtype:
         match self:
-            case LeelaPrecision.single:
+            case Lc0Precision.single:
                 return torch.float32
-            case LeelaPrecision.half:
+            case Lc0Precision.half:
                 return torch.float16
             case _:
                 raise ValueError(f"Unknown precision: {self}")
 
 
-class LeelaOptimizer(AutoStrEnum):
+class Lc0Optimizer(AutoStrEnum):
     sgd = enum.auto()
     rmsprop = enum.auto()
     nadam = enum.auto()
@@ -279,7 +283,7 @@ class LeelaOptimizer(AutoStrEnum):
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaLossWeightsConfig:
+class Lc0LossWeightsConfig:
     policy: float = 1.0
     policy_optimistic_st: float = 4.0
     policy_soft: float = 4.0  # loss is much smaller at optimum
@@ -293,7 +297,7 @@ class LeelaLossWeightsConfig:
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaNetTrainingConfig:
+class Lc0TrainingConfig:
     batch_size: int
     path: pathlib.Path
     shuffle_size: int
@@ -313,8 +317,8 @@ class LeelaNetTrainingConfig:
     epsilon: float = 1e-07  # Nadam epsilon value
     lookahead_optimzier: bool = False
     loss_scale: int = 128
-    loss_weights: LeelaLossWeightsConfig = dataclasses.field(
-        default_factory=LeelaLossWeightsConfig
+    loss_weights: Lc0LossWeightsConfig = dataclasses.field(
+        default_factory=Lc0LossWeightsConfig
     )
     lr_boundaries: list[int] = dataclasses.field(default_factory=list)
     lr_values: list[float] = dataclasses.field(default_factory=list)
@@ -322,8 +326,8 @@ class LeelaNetTrainingConfig:
     max_grad_norm: float = 10000.0
     num_batch_splits: int = 1
     num_test_positions: int = 131_072
-    optimizer: LeelaOptimizer = LeelaOptimizer.sgd
-    precision: LeelaPrecision = LeelaPrecision.single
+    optimizer: Lc0Optimizer = Lc0Optimizer.sgd
+    precision: Lc0Precision = Lc0Precision.single
     q_ratio: int = 0
     renorm: bool = False
     renorm_max_r: float = 1.0
@@ -369,7 +373,7 @@ class LeelaNetTrainingConfig:
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaNetOptionsConfig:
+class Lc0OptionsConfig:
     nodes: int
     weightsPath: pathlib.Path
     movetime: int
@@ -377,13 +381,13 @@ class LeelaNetOptionsConfig:
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaNetConfig:
-    model: LeelaNetModelConfig
-    training: LeelaNetTrainingConfig
+class Lc0Config:
+    model: Lc0ModelConfig
+    training: Lc0TrainingConfig
     name: str
     engine: str | None = None
-    options: LeelaNetOptionsConfig | None = None
-    dataset: LeelaNetDatasetConfig | None = None
+    options: Lc0OptionsConfig | None = None
+    dataset: Lc0DatasetConfig | None = None
 
     gpu: str | int = 0
     display_name: str | None = None
@@ -397,7 +401,7 @@ class LeelaNetConfig:
         return self.training.path / self.name
 
     @classmethod
-    def from_dict(cls, values: dict[str, tp.Any]) -> "LeelaNetConfig":
+    def from_dict(cls, values: dict[str, tp.Any]) -> "Lc0Config":
         """Build a config from plain YAML-compatible values."""
         values = dict(values)
         if values.get("dataset") is not None:
@@ -421,7 +425,7 @@ class LeelaNetConfig:
         )
 
     @classmethod
-    def from_yaml(cls, path: str | pathlib.Path) -> "LeelaNetConfig":
+    def from_yaml(cls, path: str | pathlib.Path) -> "Lc0Config":
         with pathlib.Path(path).open(encoding="utf-8") as stream:
             return cls.from_dict(yaml.safe_load(stream) or {})
 
@@ -435,7 +439,7 @@ class LeelaNetConfig:
         token: str | bool | None = None,
         local_files_only: bool = False,
         repo_type: str | None = None,
-    ) -> "LeelaNetConfig | LeelaInferenceConfig":
+    ) -> "Lc0Config | Lc0InferenceConfig":
         """Load the architecture config from a checkpoint ID or directory."""
         from chessnets.models._pretrained import resolve_pretrained_file
 
@@ -460,7 +464,7 @@ class LeelaNetConfig:
             else:
                 values = yaml.safe_load(stream) or {}
         if "training" not in values or "name" not in values:
-            return LeelaInferenceConfig.from_dict(values)
+            return Lc0InferenceConfig.from_dict(values)
         return cls.from_dict(values)
 
     def to_dict(self) -> dict[str, tp.Any]:
@@ -486,10 +490,10 @@ class LeelaNetConfig:
 
 
 @dataclasses.dataclass(frozen=True)
-class LeelaInferenceConfig:
+class Lc0InferenceConfig:
     """The model-only subset shipped with published Lc0 checkpoints."""
 
-    model: LeelaNetModelConfig
+    model: Lc0ModelConfig
     model_type: str = "lc0"
     config_schema_version: int = 1
     architectures: tuple[str, ...] = ()
@@ -503,32 +507,32 @@ class LeelaInferenceConfig:
             )
         if not self.architectures:
             architecture = (
-                "BTLeelaZeroNet"
-                if self.model.policy is LeelaPolicy.attention
-                else "SeLeelaZeroNet"
+                "Lc0ChessFormerModel"
+                if self.model.policy is Lc0Policy.attention
+                else "Lc0SeResNetModel"
             )
             object.__setattr__(self, "architectures", (architecture,))
 
     @classmethod
-    def from_dict(cls, values: dict[str, tp.Any]) -> "LeelaInferenceConfig":
+    def from_dict(cls, values: dict[str, tp.Any]) -> "Lc0InferenceConfig":
         if not isinstance(values, dict):
             raise TypeError(f"Expected a mapping, got {type(values).__name__}")
         if "model" not in values:
             raise ValueError("Lc0 config must contain a top-level 'model' mapping")
         return cls(
-            model=LeelaNetModelConfig.from_dict(values["model"]),
+            model=Lc0ModelConfig.from_dict(values["model"]),
             model_type=values.get("model_type", "lc0"),
             config_schema_version=values.get("config_schema_version", 1),
             architectures=tuple(values.get("architectures", ())),
         )
 
     @classmethod
-    def from_json(cls, path: str | pathlib.Path) -> "LeelaInferenceConfig":
+    def from_json(cls, path: str | pathlib.Path) -> "Lc0InferenceConfig":
         with pathlib.Path(path).open(encoding="utf-8") as stream:
             return cls.from_dict(json.load(stream))
 
     @classmethod
-    def from_yaml(cls, path: str | pathlib.Path) -> "LeelaInferenceConfig":
+    def from_yaml(cls, path: str | pathlib.Path) -> "Lc0InferenceConfig":
         with pathlib.Path(path).open(encoding="utf-8") as stream:
             return cls.from_dict(yaml.safe_load(stream) or {})
 

@@ -47,8 +47,8 @@ _LC0_SE_CITATION = (
 paper of its own."""
 )
 
-# Lc0's transformer networks (BTLeelaZeroNet in ChessNets) use the Chessformer
-# architecture.
+# Lc0's transformer networks (Lc0ChessFormerModel in ChessNets) use the
+# Chessformer architecture.
 _LC0_TRANSFORMER_CITATION = (
     _LC0_ATTRIBUTION
     + """ This transformer network uses
@@ -78,8 +78,13 @@ the Chessformer architecture; please also cite:
 ```"""
 )
 
-TRANSFORMER_ARCHITECTURE = "BTLeelaZeroNet"
-SE_ARCHITECTURE = "SeLeelaZeroNet"
+TRANSFORMER_ARCHITECTURE = "Lc0ChessFormerModel"
+SE_ARCHITECTURE = "Lc0SeResNetModel"
+# Class names before 0.2.0, still in the config.json of earlier conversions.
+_LEGACY_ARCHITECTURES = {
+    "BTLeelaZeroNet": TRANSFORMER_ARCHITECTURE,
+    "SeLeelaZeroNet": SE_ARCHITECTURE,
+}
 
 
 def is_transformer(root: pathlib.Path) -> bool:
@@ -93,6 +98,8 @@ def is_transformer(root: pathlib.Path) -> bool:
     architectures = json.loads(config.read_text(encoding="utf-8")).get(
         "architectures", []
     )
+    if isinstance(architectures, list):
+        architectures = [_LEGACY_ARCHITECTURES.get(a, a) for a in architectures]
     if architectures == [TRANSFORMER_ARCHITECTURE]:
         return True
     if architectures == [SE_ARCHITECTURE]:

@@ -22,7 +22,7 @@ import typing as tp
 import yaml
 from safetensors import safe_open
 
-from chessnets.models.lc0_senet.configuration_lc0_senet import LeelaInferenceConfig
+from chessnets.models.lc0.configuration_lc0 import Lc0InferenceConfig
 from chessnets.models.unimaia.configuration_unimaia import UniMaiaConfig
 
 POLICY_MAP_KEYS = frozenset(
@@ -313,9 +313,9 @@ def normalize_mergekit_checkpoint(
         training_values["llm_config_path"] = "text_model"
         config = UniMaiaConfig.from_dict(training_values)
         parsed_lc0_config = (
-            LeelaInferenceConfig.from_json(lc0_config_path)
+            Lc0InferenceConfig.from_json(lc0_config_path)
             if lc0_config_path.suffix.lower() == ".json"
-            else LeelaInferenceConfig.from_yaml(lc0_config_path)
+            else Lc0InferenceConfig.from_yaml(lc0_config_path)
         )
         config = dataclasses.replace(
             config,

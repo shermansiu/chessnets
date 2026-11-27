@@ -9,7 +9,7 @@ import pathlib
 import shutil
 import typing as tp
 
-from chessnets.models.lc0_senet.configuration_lc0_senet import LeelaInferenceConfig
+from chessnets.models.lc0.configuration_lc0 import Lc0InferenceConfig
 from chessnets.models.unimaia.configuration_unimaia import UniMaiaConfig
 
 
@@ -30,7 +30,7 @@ def migrate_unimaia_config(
     lc0_path = pathlib.Path(config.lc0_config_path)
     if not lc0_path.is_absolute():
         lc0_path = root / lc0_path
-    lc0_config = LeelaInferenceConfig.from_yaml(lc0_path)
+    lc0_config = Lc0InferenceConfig.from_yaml(lc0_path)
     config = dataclasses.replace(
         config,
         lc0_config=lc0_config.to_dict(),

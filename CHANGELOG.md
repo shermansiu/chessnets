@@ -18,6 +18,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Importing `AutoPipeline` or `PIPELINE_INFOS` no longer imports PyTorch or
   any pipeline, so looking up model names takes about 0.06 s instead of
   about 1.7 s. Each pipeline is imported when it is first created.
+- **Breaking:** public names now follow the `FamilyConfig`, `FamilyModel` and
+  `FamilyPipeline` convention. The registered model names are unchanged.
+  - The Lc0 modules are one package, `chessnets.models.lc0`, holding
+    `configuration_lc0`, `modeling_lc0`, `modeling_lc0_chessformer`,
+    `modeling_lc0_seresnet`, their `layers_*` modules and `policy_map`.
+    `BTLeelaZeroNet` is `Lc0ChessFormerModel`, `SeLeelaZeroNet` is
+    `Lc0SeResNetModel`, and every `Leela*` configuration class is `Lc0*`
+    (`LeelaNetConfig` is `Lc0Config`, `LeelaInferenceConfig` is
+    `Lc0InferenceConfig`). Checkpoints whose `config.json` names the old
+    classes still load.
 
 ## [0.1.1] - 2026-11-23
 
