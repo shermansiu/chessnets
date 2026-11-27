@@ -1,0 +1,40 @@
+name: Model request
+description: Propose a model family or checkpoint to support.
+labels: [model]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Any repository whose `config.json` names a supported architecture
+        already loads, and other models can be registered from your own code
+        with `AutoPipeline.register`; see
+        [Loading models](https://chessnets.readthedocs.io/en/latest/loading-models/).
+        What a built-in model needs is in
+        [CONTRIBUTING.md](https://github.com/shermansiu/chessnets/blob/main/CONTRIBUTING.md).
+  - type: textarea
+    id: model
+    attributes:
+      label: The model
+      description: What it does (plays, imitates humans, scores positions), and its architecture.
+    validations:
+      required: true
+  - type: input
+    id: weights
+    attributes:
+      label: Weights
+      description: Where the checkpoint is published, such as a Hugging Face repository.
+    validations:
+      required: true
+  - type: textarea
+    id: license
+    attributes:
+      label: Licenses
+      description: The licenses of the weights and of any code that would be adapted.
+    validations:
+      required: true
+  - type: textarea
+    id: citation
+    attributes:
+      label: Citation
+      description: BibTeX for the paper, if there is one.
+      render: bibtex
