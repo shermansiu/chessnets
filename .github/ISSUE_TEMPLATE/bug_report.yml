@@ -1,0 +1,37 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code or command
+      description: The smallest Python code or command that shows the problem, including the model name.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The error message or traceback.
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "Output of: pip show chessnets torch transformers | grep -E 'Name|Version'; python --version"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Device
+      description: CPU, or the GPU and its memory, if the problem is in running a model.

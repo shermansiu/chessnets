@@ -12,7 +12,6 @@ import numpy as np
 
 from chessnets.utils.decode_policy import MOVES
 
-
 _QUEEN_DIRECTIONS = (
     (0, 1),
     (1, 1),

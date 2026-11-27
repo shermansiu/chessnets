@@ -23,10 +23,10 @@ from chessnets.models.allie import utils as allie_utils
 from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
 from ..outputs import AllieMovePrediction, ChessMovePredictionDataset
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     iter_dataset_batches,
+    progress,
     resolve_num_workers,
 )
 
@@ -124,6 +124,8 @@ class AllieDataset(torch.utils.data.Dataset):
 
 
 class AlliePipeline(Pipeline):
+    auto_batch_sizes = {"cpu": 16, "cuda": 64}
+
     def __init__(
         self,
         model: allie_model.CausalLMWithRegressionHead,

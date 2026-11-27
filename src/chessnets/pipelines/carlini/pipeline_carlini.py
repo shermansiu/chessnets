@@ -1,4 +1,4 @@
-"""Carlini and Paleka OpenAI Instruct Chess pipeline.
+"""Carlini and Paleka's PGN-continuation prompting of OpenAI completion models.
 
 Prompt format from N. Carlini, "Playing chess with large language models" (2023),
 https://nicholas.carlini.com/writing/2023/chess-llm.html, and Carlini & Paleka's
@@ -21,17 +21,22 @@ import chess
 import torch
 import torch.utils.data
 
+from chessnets._optional import optional_module
 from chessnets.utils import board_history
 
-from chessnets._optional import optional_module
-from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
+from ..base import (
+    Pipeline,
+    PipelineInputConfig,
+    bind_positional_inputs,
+    extract_domain_inputs,
+)
 from ..outputs import ChessMovePrediction, ChessMovePredictionDataset
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     asyncio_run,
     iter_dataset_batches,
+    progress,
     resolve_num_workers,
 )
 
@@ -62,7 +67,7 @@ def _pgn_movetext(history: board_history.BoardHistory, warn_on_game_over: bool) 
         logging.info("Game is over; no moves valid")
         error_message = f"Game is over; no moves valid. FEN: {board.fen()}  PGN: {pgn}"
         if warn_on_game_over:
-            warnings.warn(error_message)
+            warnings.warn(error_message, stacklevel=2)
         else:
             raise ValueError(error_message)
         pgn = pgn.rsplit(" ", 1)[0].strip()
@@ -112,6 +117,15 @@ class CarliniPipelineConfig:
             raise ValueError("num_lookahead_tokens must be at least 9")
 
     @property
+    def input_names(self) -> tuple[str, ...]:
+        """The inputs after the PGNs, in the order they may be passed positionally."""
+        if self.input_mode == CarliniInputMode.PROMPT:
+            return ("prompts",)
+        if self.input_mode == CarliniInputMode.TIME_CONTROL_AND_ELO:
+            return ("time_controls", "white_elos", "black_elos")
+        return ()
+
+    @property
     def input_config(self) -> PipelineInputConfig:
         if self.input_mode == CarliniInputMode.DEFAULT:
             return PipelineInputConfig.from_inputs(required=("pgns",))
@@ -122,8 +136,8 @@ class CarliniPipelineConfig:
         )
 
 
-class CarliniOpenAIInstructChessDataset(torch.utils.data.Dataset):
-    """Dataset for Carlini and Paleka's OpenAI Instruct Chess Pipeline."""
+class _CarliniDataset(torch.utils.data.Dataset):
+    """Carlini prompts: a fixed PGN header, then the game's movetext."""
 
     def __init__(
         self,
@@ -199,8 +213,8 @@ class CarliniOpenAIInstructChessDataset(torch.utils.data.Dataset):
         return prompts, list(histories), first_fen_indices, seen_fen_indices
 
 
-class CarliniOpenAIInstructChessDatasetWithPrompt(CarliniOpenAIInstructChessDataset):
-    """Dataset for Carlini and Paleka's OpenAI Instruct Chess Pipeline, except this one also inserts the prompt after the PGN header."""
+class _CarliniPromptDataset(_CarliniDataset):
+    """Carlini prompts with the prompt inserted after the PGN header."""
 
     def __init__(
         self,
@@ -255,11 +269,8 @@ class CarliniOpenAIInstructChessDatasetWithPrompt(CarliniOpenAIInstructChessData
         return pgn_header + f"{prompt}\n\n" + _pgn_movetext(history, warn_on_game_over)
 
 
-class CarliniOpenAIInstructChessDatasetWithTimeControlAndElo(
-    CarliniOpenAIInstructChessDataset
-):
-    """Dataset for Carlini and Paleka's OpenAI Instruct Chess Pipeline,
-    except this one uses the actual time control and Elo rating information."""
+class _CarliniTimeControlAndEloDataset(_CarliniDataset):
+    """Carlini prompts whose PGN header gives the game's ratings and time control."""
 
     def __init__(
         self,
@@ -332,8 +343,13 @@ class CarliniOpenAIInstructChessDatasetWithTimeControlAndElo(
         ) + _pgn_movetext(history, warn_on_game_over)
 
 
-class CarliniOpenAIInstructChessPipeline(Pipeline):
-    """Carlini and Paleka's OpenAI Instruct Chess Pipeline."""
+class CarliniPipeline(Pipeline):
+    """Carlini and Paleka's prompting of OpenAI completion models.
+
+    The model continues a PGN whose header is chosen by
+    :class:`CarliniPipelineConfig`; the first legal move it writes is the
+    prediction. Moves are cached by FEN on disk, so repeated positions are free.
+    """
 
     def __init__(
         self,
@@ -347,17 +363,7 @@ class CarliniOpenAIInstructChessPipeline(Pipeline):
         pipeline_config: CarliniPipelineConfig | None = None,
     ):
         if pipeline_config is None:
-            # Infer the compatibility mode used by the legacy subclasses from
-            # their overridden input contract.
-            legacy_config = self.default_input_config()
-            required = legacy_config.required_inputs
-            if "prompts" in required:
-                mode = CarliniInputMode.PROMPT
-            elif "time_controls" in required or "white_elos" in required:
-                mode = CarliniInputMode.TIME_CONTROL_AND_ELO
-            else:
-                mode = CarliniInputMode.DEFAULT
-            pipeline_config = CarliniPipelineConfig(input_mode=mode)
+            pipeline_config = CarliniPipelineConfig()
         expected_input_config = pipeline_config.input_config
         if input_config is not None:
             if input_config.required_inputs != expected_input_config.required_inputs:
@@ -460,7 +466,7 @@ class CarliniOpenAIInstructChessPipeline(Pipeline):
         black_elos: list[int] | int | None = None,
         num_workers: int | None = None,
         parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
-    ) -> CarliniOpenAIInstructChessDataset:
+    ) -> _CarliniDataset:
         """Build the dataset selected by the declarative input mode."""
         common = {
             "pgns": pgns,
@@ -472,23 +478,25 @@ class CarliniOpenAIInstructChessPipeline(Pipeline):
         config = getattr(self, "pipeline_config", CarliniPipelineConfig())
         mode = config.input_mode
         if mode == CarliniInputMode.PROMPT:
-            return CarliniOpenAIInstructChessDatasetWithPrompt(
-                prompts=prompts, **common
-            )
+            return _CarliniPromptDataset(prompts=prompts, **common)
         if mode == CarliniInputMode.TIME_CONTROL_AND_ELO:
-            return CarliniOpenAIInstructChessDatasetWithTimeControlAndElo(
+            return _CarliniTimeControlAndEloDataset(
                 time_control=time_controls,
                 white_elo=white_elos,
                 black_elo=black_elos,
                 **common,
             )
-        return CarliniOpenAIInstructChessDataset(**common)
+        return _CarliniDataset(**common)
+
+    def _bind_inputs(self, inputs: tuple[tp.Any, ...], **keywords: tp.Any):
+        config = getattr(self, "pipeline_config", None) or CarliniPipelineConfig()
+        return bind_positional_inputs(config.input_names, inputs, keywords)
 
     def make_prediction(
         self,
         pgns: list[str] | str,
+        *inputs: tp.Any,
         num_tokens: int | None = None,
-        *,
         prompts: list[str] | str | None = None,
         time_controls: list[str] | str | None = None,
         white_elos: list[int] | int | None = None,
@@ -500,11 +508,23 @@ class CarliniOpenAIInstructChessPipeline(Pipeline):
         parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
         **kwargs,
     ) -> ChessMovePredictionDataset:
+        """Predict a move for each PGN.
+
+        The other inputs depend on the input mode: ``prompts``, or
+        ``time_controls``, ``white_elos`` and ``black_elos``. They may also be
+        passed positionally after the PGNs, in that order.
+        """
         if not hasattr(self, "input_config"):
             self.input_config = self.default_input_config()
-        pipeline_config = getattr(self, "pipeline_config", None)
-        if pipeline_config is None:
-            pipeline_config = CarliniPipelineConfig()
+        values = self._bind_inputs(
+            inputs,
+            prompts=prompts,
+            time_controls=time_controls,
+            white_elos=white_elos,
+            black_elos=black_elos,
+        )
+        prompts, time_controls = values["prompts"], values["time_controls"]
+        white_elos, black_elos = values["white_elos"], values["black_elos"]
         num_tokens = self._resolve_num_tokens(num_tokens)
         self.input_config.validate(
             pgns=pgns,
@@ -669,82 +689,9 @@ class CarliniOpenAIInstructChessPipeline(Pipeline):
             return [message for message in messages]
 
 
-class CarliniOpenAIInstructChessPipelineWithPrompt(CarliniOpenAIInstructChessPipeline):
-    """Carlini and Paleka's OpenAI Instruct Chess Pipeline, except this one also inserts the prompt after the PGN header."""
-
-    @staticmethod
-    def default_input_config() -> PipelineInputConfig:
-        return CarliniPipelineConfig(input_mode=CarliniInputMode.PROMPT).input_config
-
-    def make_prediction(
-        self,
-        pgns: list[str] | str,
-        prompts: list[str] | str,
-        num_tokens: int | None = None,
-        verbose: bool = False,
-        tqdm_leave: bool = False,
-        return_histories: bool = False,
-        num_workers: int | None = None,
-        parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
-        **kwargs,
-    ) -> ChessMovePredictionDataset:
-        return super().make_prediction(
-            pgns,
-            num_tokens,
-            prompts=prompts,
-            verbose=verbose,
-            tqdm_leave=tqdm_leave,
-            return_histories=return_histories,
-            num_workers=num_workers,
-            parallel_threshold=parallel_threshold,
-            **kwargs,
-        )
-
-
-class CarliniOpenAIInstructChessPipelineWithTimeControlAndElo(
-    CarliniOpenAIInstructChessPipeline
-):
-    """Carlini and Paleka's OpenAI Instruct Chess Pipeline,
-    except this one uses the actual time control and Elo in the prompt."""
-
-    @staticmethod
-    def default_input_config() -> PipelineInputConfig:
-        return CarliniPipelineConfig(
-            input_mode=CarliniInputMode.TIME_CONTROL_AND_ELO
-        ).input_config
-
-    def make_prediction(
-        self,
-        pgns: list[str] | str,
-        time_control: list[str] | str,
-        white_elo: list[int] | int,
-        black_elo: list[int] | int,
-        num_tokens: int | None = None,
-        verbose: bool = False,
-        tqdm_leave: bool = False,
-        return_histories: bool = False,
-        num_workers: int | None = None,
-        parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
-        **kwargs,
-    ) -> ChessMovePredictionDataset:
-        return super().make_prediction(
-            pgns,
-            num_tokens,
-            time_controls=time_control,
-            white_elos=white_elo,
-            black_elos=black_elo,
-            verbose=verbose,
-            tqdm_leave=tqdm_leave,
-            return_histories=return_histories,
-            num_workers=num_workers,
-            parallel_threshold=parallel_threshold,
-            **kwargs,
-        )
-
-
 # Note: the OpenAI client keeps getting throttled, so we just use the synchronous one because it's faster
-class AsyncCarliniOpenAIInstructChessPipeline(CarliniOpenAIInstructChessPipeline):
-    """Carlini and Paleka's OpenAI Instruct Chess Pipeline."""
+class AsyncCarliniPipeline(CarliniPipeline):
+    """:class:`CarliniPipeline` with concurrent requests, batched by ``batch_size``."""
 
     def __init__(
         self,
@@ -770,6 +717,7 @@ class AsyncCarliniOpenAIInstructChessPipeline(CarliniOpenAIInstructChessPipeline
     def make_prediction(
         self,
         pgns: list[str] | str,
+        *inputs: tp.Any,
         num_tokens: int | None = None,
         verbose: bool = False,
         tqdm_leave: bool = False,
@@ -784,6 +732,15 @@ class AsyncCarliniOpenAIInstructChessPipeline(CarliniOpenAIInstructChessPipeline
         black_elos: list[int] | int | None = None,
         **kwargs,
     ) -> ChessMovePredictionDataset:
+        values = self._bind_inputs(
+            inputs,
+            prompts=prompts,
+            time_controls=time_controls,
+            white_elos=white_elos,
+            black_elos=black_elos,
+        )
+        prompts, time_controls = values["prompts"], values["time_controls"]
+        white_elos, black_elos = values["white_elos"], values["black_elos"]
         self.input_config.validate(
             pgns=pgns,
             prompts=prompts,
@@ -885,7 +842,8 @@ class AsyncCarliniOpenAIInstructChessPipeline(CarliniOpenAIInstructChessPipeline
                 out = self.cache.get(board.fen())
                 if out is None:
                     warnings.warn(
-                        f"Obtained invalid move when looking up seen FEN within the same batch. FEN={board.fen()}"
+                        f"Obtained invalid move when looking up seen FEN within the same batch. FEN={board.fen()}",
+                        stacklevel=2,
                     )
                 batch_outputs[i] = out
 
@@ -980,18 +938,11 @@ class AsyncCarliniOpenAIInstructChessPipeline(CarliniOpenAIInstructChessPipeline
 
 MAX_RETRIES = 5
 
-CarliniPipeline = CarliniOpenAIInstructChessPipeline
 __all__ = [
-    "AsyncCarliniOpenAIInstructChessPipeline",
-    "CarliniOpenAIInstructChessDataset",
-    "CarliniOpenAIInstructChessDatasetWithPrompt",
-    "CarliniOpenAIInstructChessDatasetWithTimeControlAndElo",
-    "CarliniOpenAIInstructChessPipeline",
+    "AsyncCarliniPipeline",
+    "CarliniInputMode",
     "CarliniPipeline",
     "CarliniPipelineConfig",
-    "CarliniInputMode",
-    "CarliniOpenAIInstructChessPipelineWithPrompt",
-    "CarliniOpenAIInstructChessPipelineWithTimeControlAndElo",
     "DEFAULT_CARLINI_PGN_HEADER_BLOG",
     "DEFAULT_CARLINI_PGN_HEADER_CODE",
     "DEFAULT_CARLINI_NUM_LOOKAHEAD_TOKENS",

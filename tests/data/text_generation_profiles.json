@@ -1,0 +1,1610 @@
+{
+ "base-v1": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    [
+     "regex",
+     "(?:(?: ?[1-9][0-9]*\\.(?:\\.\\.)?)? )?(?:(?:(?:[NBRQK])?(?:[a-h])?(?:[1-8])?x?(?:[a-h][1-8])(?:=[NBRQ])?(?:\\+|#)?)|(?:O-O(?:-O)))"
+    ]
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "Play well.\n\n1. e4 e5 2. Nf3",
+     "Think.\n\n[Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4"
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "base-v1+choice": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "Ne7",
+      " Ne7",
+      "2... Ne7",
+      " 2... Ne7",
+      "Nh6",
+      " Nh6",
+      "2... Nh6",
+      " 2... Nh6",
+      "Nf6",
+      " Nf6",
+      "2... Nf6",
+      " 2... Nf6",
+      "Be7",
+      " Be7",
+      "2... Be7",
+      " 2... Be7",
+      "Bd6",
+      " Bd6",
+      "2... Bd6",
+      " 2... Bd6",
+      "Bc5",
+      " Bc5",
+      "2... Bc5",
+      " 2... Bc5",
+      "Bb4",
+      " Bb4",
+      "2... Bb4",
+      " 2... Bb4",
+      "Ba3",
+      " Ba3",
+      "2... Ba3",
+      " 2... Ba3",
+      "Ke7",
+      " Ke7",
+      "2... Ke7",
+      " 2... Ke7",
+      "Qe7",
+      " Qe7",
+      "2... Qe7",
+      " 2... Qe7",
+      "Qf6",
+      " Qf6",
+      "2... Qf6",
+      " 2... Qf6",
+      "Qg5",
+      " Qg5",
+      "2... Qg5",
+      " 2... Qg5",
+      "Qh4",
+      " Qh4",
+      "2... Qh4",
+      " 2... Qh4",
+      "Nc6",
+      " Nc6",
+      "2... Nc6",
+      " 2... Nc6",
+      "Na6",
+      " Na6",
+      "2... Na6",
+      " 2... Na6",
+      "h6",
+      " h6",
+      "2... h6",
+      " 2... h6",
+      "g6",
+      " g6",
+      "2... g6",
+      " 2... g6",
+      "f6",
+      " f6",
+      "2... f6",
+      " 2... f6",
+      "d6",
+      " d6",
+      "2... d6",
+      " 2... d6",
+      "c6",
+      " c6",
+      "2... c6",
+      " 2... c6",
+      "b6",
+      " b6",
+      "2... b6",
+      " 2... b6",
+      "a6",
+      " a6",
+      "2... a6",
+      " 2... a6",
+      "h5",
+      " h5",
+      "2... h5",
+      " 2... h5",
+      "g5",
+      " g5",
+      "2... g5",
+      " 2... g5",
+      "f5",
+      " f5",
+      "2... f5",
+      " 2... f5",
+      "d5",
+      " d5",
+      "2... d5",
+      " 2... d5",
+      "c5",
+      " c5",
+      "2... c5",
+      " 2... c5",
+      "b5",
+      " b5",
+      "2... b5",
+      " 2... b5",
+      "a5",
+      " a5",
+      "2... a5",
+      " 2... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "Play well.\n\n1. e4 e5 2. Nf3",
+    {
+     "temperature": null
+    }
+   ],
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "Nh6",
+      " Nh6",
+      "1... Nh6",
+      " 1... Nh6",
+      "Nf6",
+      " Nf6",
+      "1... Nf6",
+      " 1... Nf6",
+      "Nc6",
+      " Nc6",
+      "1... Nc6",
+      " 1... Nc6",
+      "Na6",
+      " Na6",
+      "1... Na6",
+      " 1... Na6",
+      "h6",
+      " h6",
+      "1... h6",
+      " 1... h6",
+      "g6",
+      " g6",
+      "1... g6",
+      " 1... g6",
+      "f6",
+      " f6",
+      "1... f6",
+      " 1... f6",
+      "e6",
+      " e6",
+      "1... e6",
+      " 1... e6",
+      "d6",
+      " d6",
+      "1... d6",
+      " 1... d6",
+      "c6",
+      " c6",
+      "1... c6",
+      " 1... c6",
+      "b6",
+      " b6",
+      "1... b6",
+      " 1... b6",
+      "a6",
+      " a6",
+      "1... a6",
+      " 1... a6",
+      "h5",
+      " h5",
+      "1... h5",
+      " 1... h5",
+      "g5",
+      " g5",
+      "1... g5",
+      " 1... g5",
+      "f5",
+      " f5",
+      "1... f5",
+      " 1... f5",
+      "e5",
+      " e5",
+      "1... e5",
+      " 1... e5",
+      "d5",
+      " d5",
+      "1... d5",
+      " 1... d5",
+      "c5",
+      " c5",
+      "1... c5",
+      " 1... c5",
+      "b5",
+      " b5",
+      "1... b5",
+      " 1... b5",
+      "a5",
+      " a5",
+      "1... a5",
+      " 1... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "Think.\n\n[Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4",
+    {
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "base-v1_tc_elo": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    [
+     "regex",
+     "(?:(?: ?[1-9][0-9]*\\.(?:\\.\\.)?)? )?(?:(?:(?:[NBRQK])?(?:[a-h])?(?:[1-8])?x?(?:[a-h][1-8])(?:=[NBRQ])?(?:\\+|#)?)|(?:O-O(?:-O)))"
+    ]
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "[White \"???\"]\n[Black \"???\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[TimeControl \"300+0\"]\n\n1. e4 e5 2. Nf3",
+     "[White \"???\"]\n[Black \"???\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[TimeControl \"600+5\"]\n\n1. d4"
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "black_elos",
+   "pgns",
+   "time_controls",
+   "white_elos"
+  ],
+  "temperature": null
+ },
+ "base-v1_tc_elo+choice": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-base-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "Ne7",
+      " Ne7",
+      "2... Ne7",
+      " 2... Ne7",
+      "Nh6",
+      " Nh6",
+      "2... Nh6",
+      " 2... Nh6",
+      "Nf6",
+      " Nf6",
+      "2... Nf6",
+      " 2... Nf6",
+      "Be7",
+      " Be7",
+      "2... Be7",
+      " 2... Be7",
+      "Bd6",
+      " Bd6",
+      "2... Bd6",
+      " 2... Bd6",
+      "Bc5",
+      " Bc5",
+      "2... Bc5",
+      " 2... Bc5",
+      "Bb4",
+      " Bb4",
+      "2... Bb4",
+      " 2... Bb4",
+      "Ba3",
+      " Ba3",
+      "2... Ba3",
+      " 2... Ba3",
+      "Ke7",
+      " Ke7",
+      "2... Ke7",
+      " 2... Ke7",
+      "Qe7",
+      " Qe7",
+      "2... Qe7",
+      " 2... Qe7",
+      "Qf6",
+      " Qf6",
+      "2... Qf6",
+      " 2... Qf6",
+      "Qg5",
+      " Qg5",
+      "2... Qg5",
+      " 2... Qg5",
+      "Qh4",
+      " Qh4",
+      "2... Qh4",
+      " 2... Qh4",
+      "Nc6",
+      " Nc6",
+      "2... Nc6",
+      " 2... Nc6",
+      "Na6",
+      " Na6",
+      "2... Na6",
+      " 2... Na6",
+      "h6",
+      " h6",
+      "2... h6",
+      " 2... h6",
+      "g6",
+      " g6",
+      "2... g6",
+      " 2... g6",
+      "f6",
+      " f6",
+      "2... f6",
+      " 2... f6",
+      "d6",
+      " d6",
+      "2... d6",
+      " 2... d6",
+      "c6",
+      " c6",
+      "2... c6",
+      " 2... c6",
+      "b6",
+      " b6",
+      "2... b6",
+      " 2... b6",
+      "a6",
+      " a6",
+      "2... a6",
+      " 2... a6",
+      "h5",
+      " h5",
+      "2... h5",
+      " 2... h5",
+      "g5",
+      " g5",
+      "2... g5",
+      " 2... g5",
+      "f5",
+      " f5",
+      "2... f5",
+      " 2... f5",
+      "d5",
+      " d5",
+      "2... d5",
+      " 2... d5",
+      "c5",
+      " c5",
+      "2... c5",
+      " 2... c5",
+      "b5",
+      " b5",
+      "2... b5",
+      " 2... b5",
+      "a5",
+      " a5",
+      "2... a5",
+      " 2... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "[White \"???\"]\n[Black \"???\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[TimeControl \"300+0\"]\n\n1. e4 e5 2. Nf3",
+    {
+     "temperature": null
+    }
+   ],
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "Nh6",
+      " Nh6",
+      "1... Nh6",
+      " 1... Nh6",
+      "Nf6",
+      " Nf6",
+      "1... Nf6",
+      " 1... Nf6",
+      "Nc6",
+      " Nc6",
+      "1... Nc6",
+      " 1... Nc6",
+      "Na6",
+      " Na6",
+      "1... Na6",
+      " 1... Na6",
+      "h6",
+      " h6",
+      "1... h6",
+      " 1... h6",
+      "g6",
+      " g6",
+      "1... g6",
+      " 1... g6",
+      "f6",
+      " f6",
+      "1... f6",
+      " 1... f6",
+      "e6",
+      " e6",
+      "1... e6",
+      " 1... e6",
+      "d6",
+      " d6",
+      "1... d6",
+      " 1... d6",
+      "c6",
+      " c6",
+      "1... c6",
+      " 1... c6",
+      "b6",
+      " b6",
+      "1... b6",
+      " 1... b6",
+      "a6",
+      " a6",
+      "1... a6",
+      " 1... a6",
+      "h5",
+      " h5",
+      "1... h5",
+      " 1... h5",
+      "g5",
+      " g5",
+      "1... g5",
+      " 1... g5",
+      "f5",
+      " f5",
+      "1... f5",
+      " 1... f5",
+      "e5",
+      " e5",
+      "1... e5",
+      " 1... e5",
+      "d5",
+      " d5",
+      "1... d5",
+      " 1... d5",
+      "c5",
+      " c5",
+      "1... c5",
+      " 1... c5",
+      "b5",
+      " b5",
+      "1... b5",
+      " 1... b5",
+      "a5",
+      " a5",
+      "1... a5",
+      " 1... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "[White \"???\"]\n[Black \"???\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[TimeControl \"600+5\"]\n\n1. d4",
+    {
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "black_elos",
+   "pgns",
+   "time_controls",
+   "white_elos"
+  ],
+  "temperature": null
+ },
+ "carlini-default": {
+  "prompts": [
+   "[White \"Magnus Carlsen\"]\n[Black \"Garry Kasparov\"]\n[WhiteElo \"2900\"]\n[BlackElo \"2800\"]\n\n1. e4 e5 2. Nf3",
+   "[White \"Magnus Carlsen\"]\n[Black \"Garry Kasparov\"]\n[WhiteElo \"2900\"]\n[BlackElo \"2800\"]\n\n1. d4"
+  ],
+  "required": [
+   "pgns"
+  ]
+ },
+ "carlini-prompt": {
+  "prompts": [
+   "[White \"Magnus Carlsen\"]\n[Black \"Garry Kasparov\"]\n[WhiteElo \"2900\"]\n[BlackElo \"2800\"]\n\nP1\n\n1. e4 e5 2. Nf3",
+   "[White \"Magnus Carlsen\"]\n[Black \"Garry Kasparov\"]\n[WhiteElo \"2900\"]\n[BlackElo \"2800\"]\n\nP2\n\n1. d4"
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ]
+ },
+ "carlini-time_control_and_elo": {
+  "prompts": [
+   "[White \"???\"]\n[Black \"???\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[TimeControl \"300+0\"]\n\n1. e4 e5 2. Nf3",
+   "[White \"???\"]\n[Black \"???\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[TimeControl \"600+5\"]\n\n1. d4"
+  ],
+  "required": [
+   "black_elos",
+   "pgns",
+   "time_controls",
+   "white_elos"
+  ]
+ },
+ "chat-v1": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    "ChessResponse"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "Play well.\n\n    PGN: 1. e4 e5 2. Nf3\n\n    FEN: rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2\n\n    Legal moves: Ne7 Nh6 Nf6 Be7 Bd6 Bc5 Bb4 Ba3 Ke7 Qe7 Qf6 Qg5 Qh4 Nc6 Na6 h6 g6 f6 d6 c6 b6 a6 h5 g5 f5 d5 c5 b5 a5\n\n    Determine the probability of playing each legal chess move in the given position. Respond in JSON format as a list of objects with `move` and `probability` fields, where `move` is in the SAN format. Ensure the probabilities sum to 1 and only include legal moves.",
+     "Think.\n\n    PGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\n    FEN: rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1\n\n    Legal moves: Nh6 Nf6 Nc6 Na6 h6 g6 f6 e6 d6 c6 b6 a6 h5 g5 f5 e5 d5 c5 b5 a5\n\n    Determine the probability of playing each legal chess move in the given position. Respond in JSON format as a list of objects with `move` and `probability` fields, where `move` is in the SAN format. Ensure the probabilities sum to 1 and only include legal moves."
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "chat-v1_general_policy": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    [
+     "regex",
+     "[1-9][0-9]*\\.(?:\\.\\.)? (?:(?:(?:[NBRQK])?(?:[a-h])?(?:[1-8])?x?(?:[a-h][1-8])(?:=[NBRQ])?(?:\\+|#)?)|(?:O-O(?:-O)))"
+    ]
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"300+0\"]\n[Termination \"Time forfeit\"]\n\n1. e4 e5 2. Nf3\n\nMake the next move.<|endoftext|>Human 1: ",
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"600+5\"]\n[Termination \"Time forfeit\"]\n\n1. d4\n\nMake the next move.<|endoftext|>Human 1: "
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "black_elos",
+   "pgns",
+   "time_controls",
+   "white_elos"
+  ],
+  "temperature": null
+ },
+ "chat-v1_general_policy+choice": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "2... Ne7",
+      "2... Nh6",
+      "2... Nf6",
+      "2... Be7",
+      "2... Bd6",
+      "2... Bc5",
+      "2... Bb4",
+      "2... Ba3",
+      "2... Ke7",
+      "2... Qe7",
+      "2... Qf6",
+      "2... Qg5",
+      "2... Qh4",
+      "2... Nc6",
+      "2... Na6",
+      "2... h6",
+      "2... g6",
+      "2... f6",
+      "2... d6",
+      "2... c6",
+      "2... b6",
+      "2... a6",
+      "2... h5",
+      "2... g5",
+      "2... f5",
+      "2... d5",
+      "2... c5",
+      "2... b5",
+      "2... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"300+0\"]\n[Termination \"Time forfeit\"]\n\n1. e4 e5 2. Nf3\n\nMake the next move.<|endoftext|>Human 1: ",
+    {
+     "temperature": null
+    }
+   ],
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "1... Nh6",
+      "1... Nf6",
+      "1... Nc6",
+      "1... Na6",
+      "1... h6",
+      "1... g6",
+      "1... f6",
+      "1... e6",
+      "1... d6",
+      "1... c6",
+      "1... b6",
+      "1... a6",
+      "1... h5",
+      "1... g5",
+      "1... f5",
+      "1... e5",
+      "1... d5",
+      "1... c5",
+      "1... b5",
+      "1... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"600+5\"]\n[Termination \"Time forfeit\"]\n\n1. d4\n\nMake the next move.<|endoftext|>Human 1: ",
+    {
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "black_elos",
+   "pgns",
+   "time_controls",
+   "white_elos"
+  ],
+  "temperature": null
+ },
+ "chat-v1_simple": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    [
+     "regex",
+     "[1-9][0-9]*\\.(?:\\.\\.)? (?:(?:(?:[NBRQK])?(?:[a-h])?(?:[1-8])?x?(?:[a-h][1-8])(?:=[NBRQ])?(?:\\+|#)?)|(?:O-O(?:-O)))"
+    ]
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: "
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "chat-v1_simple+choice": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "2... Ne7",
+      "2... Nh6",
+      "2... Nf6",
+      "2... Be7",
+      "2... Bd6",
+      "2... Bc5",
+      "2... Bb4",
+      "2... Ba3",
+      "2... Ke7",
+      "2... Qe7",
+      "2... Qf6",
+      "2... Qg5",
+      "2... Qh4",
+      "2... Nc6",
+      "2... Na6",
+      "2... h6",
+      "2... g6",
+      "2... f6",
+      "2... d6",
+      "2... c6",
+      "2... b6",
+      "2... a6",
+      "2... h5",
+      "2... g5",
+      "2... f5",
+      "2... d5",
+      "2... c5",
+      "2... b5",
+      "2... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
+    {
+     "temperature": null
+    }
+   ],
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "1... Nh6",
+      "1... Nf6",
+      "1... Nc6",
+      "1... Na6",
+      "1... h6",
+      "1... g6",
+      "1... f6",
+      "1... e6",
+      "1... d6",
+      "1... c6",
+      "1... b6",
+      "1... a6",
+      "1... h5",
+      "1... g5",
+      "1... f5",
+      "1... e5",
+      "1... d5",
+      "1... c5",
+      "1... b5",
+      "1... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: ",
+    {
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "chat-v1_simple_original": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    [
+     "regex",
+     "[1-9][0-9]*\\.(?:\\.\\.)? (?:(?:(?:[NBRQK])?(?:[a-h])?(?:[1-8])?x?(?:[a-h][1-8])(?:=[NBRQ])?(?:\\+|#)?)|(?:O-O(?:-O)))"
+    ]
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: "
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "chat-v1_simple_original+choice": {
+  "init_calls": [
+   [
+    "tok",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "Waterhorse/chessgpt-chat-v1",
+    {
+     "attn_implementation": "sdpa",
+     "cache_dir": null,
+     "dtype": "torch.bfloat16",
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "2... Ne7",
+      "2... Nh6",
+      "2... Nf6",
+      "2... Be7",
+      "2... Bd6",
+      "2... Bc5",
+      "2... Bb4",
+      "2... Ba3",
+      "2... Ke7",
+      "2... Qe7",
+      "2... Qf6",
+      "2... Qg5",
+      "2... Qh4",
+      "2... Nc6",
+      "2... Na6",
+      "2... h6",
+      "2... g6",
+      "2... f6",
+      "2... d6",
+      "2... c6",
+      "2... b6",
+      "2... a6",
+      "2... h5",
+      "2... g5",
+      "2... f5",
+      "2... d5",
+      "2... c5",
+      "2... b5",
+      "2... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
+    {
+     "temperature": null
+    }
+   ],
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "1... Nh6",
+      "1... Nf6",
+      "1... Nc6",
+      "1... Na6",
+      "1... h6",
+      "1... g6",
+      "1... f6",
+      "1... e6",
+      "1... d6",
+      "1... c6",
+      "1... b6",
+      "1... a6",
+      "1... h5",
+      "1... g5",
+      "1... f5",
+      "1... e5",
+      "1... d5",
+      "1... c5",
+      "1... b5",
+      "1... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: ",
+    {
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "unimaia-local": {
+  "init_calls": [
+   [
+    "tok",
+    "local/dir",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "local/dir",
+    {
+     "cache_dir": null,
+     "dtype": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ],
+   [
+    "generator",
+    [
+     "regex",
+     "(?:(?: ?[1-9][0-9]*\\.(?:\\.\\.)?)? )?(?:(?:(?:[NBRQK])?(?:[a-h])?(?:[1-8])?x?(?:[a-h][1-8])(?:=[NBRQ])?(?:\\+|#)?)|(?:O-O(?:-O)))"
+    ]
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "batch",
+    [
+     "Play well.<|endoftext|>1. e4 e5 2. Nf3",
+     "Think.<|endoftext|>[Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4"
+    ],
+    {
+     "max_new_tokens": 7,
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ },
+ "unimaia-local+choice": {
+  "init_calls": [
+   [
+    "tok",
+    "local/dir",
+    {
+     "cache_dir": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "model",
+    "local/dir",
+    {
+     "cache_dir": null,
+     "dtype": null,
+     "local_files_only": false,
+     "revision": null,
+     "token": null
+    }
+   ],
+   [
+    "to",
+    "cpu"
+   ]
+  ],
+  "pad": [
+   0,
+   0
+  ],
+  "predict_calls": [
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "Ne7",
+      " Ne7",
+      "2... Ne7",
+      " 2... Ne7",
+      "Nh6",
+      " Nh6",
+      "2... Nh6",
+      " 2... Nh6",
+      "Nf6",
+      " Nf6",
+      "2... Nf6",
+      " 2... Nf6",
+      "Be7",
+      " Be7",
+      "2... Be7",
+      " 2... Be7",
+      "Bd6",
+      " Bd6",
+      "2... Bd6",
+      " 2... Bd6",
+      "Bc5",
+      " Bc5",
+      "2... Bc5",
+      " 2... Bc5",
+      "Bb4",
+      " Bb4",
+      "2... Bb4",
+      " 2... Bb4",
+      "Ba3",
+      " Ba3",
+      "2... Ba3",
+      " 2... Ba3",
+      "Ke7",
+      " Ke7",
+      "2... Ke7",
+      " 2... Ke7",
+      "Qe7",
+      " Qe7",
+      "2... Qe7",
+      " 2... Qe7",
+      "Qf6",
+      " Qf6",
+      "2... Qf6",
+      " 2... Qf6",
+      "Qg5",
+      " Qg5",
+      "2... Qg5",
+      " 2... Qg5",
+      "Qh4",
+      " Qh4",
+      "2... Qh4",
+      " 2... Qh4",
+      "Nc6",
+      " Nc6",
+      "2... Nc6",
+      " 2... Nc6",
+      "Na6",
+      " Na6",
+      "2... Na6",
+      " 2... Na6",
+      "h6",
+      " h6",
+      "2... h6",
+      " 2... h6",
+      "g6",
+      " g6",
+      "2... g6",
+      " 2... g6",
+      "f6",
+      " f6",
+      "2... f6",
+      " 2... f6",
+      "d6",
+      " d6",
+      "2... d6",
+      " 2... d6",
+      "c6",
+      " c6",
+      "2... c6",
+      " 2... c6",
+      "b6",
+      " b6",
+      "2... b6",
+      " 2... b6",
+      "a6",
+      " a6",
+      "2... a6",
+      " 2... a6",
+      "h5",
+      " h5",
+      "2... h5",
+      " 2... h5",
+      "g5",
+      " g5",
+      "2... g5",
+      " 2... g5",
+      "f5",
+      " f5",
+      "2... f5",
+      " 2... f5",
+      "d5",
+      " d5",
+      "2... d5",
+      " 2... d5",
+      "c5",
+      " c5",
+      "2... c5",
+      " 2... c5",
+      "b5",
+      " b5",
+      "2... b5",
+      " 2... b5",
+      "a5",
+      " a5",
+      "2... a5",
+      " 2... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "Play well.<|endoftext|>1. e4 e5 2. Nf3",
+    {
+     "temperature": null
+    }
+   ],
+   [
+    "generator",
+    [
+     "choice",
+     [
+      "Nh6",
+      " Nh6",
+      "1... Nh6",
+      " 1... Nh6",
+      "Nf6",
+      " Nf6",
+      "1... Nf6",
+      " 1... Nf6",
+      "Nc6",
+      " Nc6",
+      "1... Nc6",
+      " 1... Nc6",
+      "Na6",
+      " Na6",
+      "1... Na6",
+      " 1... Na6",
+      "h6",
+      " h6",
+      "1... h6",
+      " 1... h6",
+      "g6",
+      " g6",
+      "1... g6",
+      " 1... g6",
+      "f6",
+      " f6",
+      "1... f6",
+      " 1... f6",
+      "e6",
+      " e6",
+      "1... e6",
+      " 1... e6",
+      "d6",
+      " d6",
+      "1... d6",
+      " 1... d6",
+      "c6",
+      " c6",
+      "1... c6",
+      " 1... c6",
+      "b6",
+      " b6",
+      "1... b6",
+      " 1... b6",
+      "a6",
+      " a6",
+      "1... a6",
+      " 1... a6",
+      "h5",
+      " h5",
+      "1... h5",
+      " 1... h5",
+      "g5",
+      " g5",
+      "1... g5",
+      " 1... g5",
+      "f5",
+      " f5",
+      "1... f5",
+      " 1... f5",
+      "e5",
+      " e5",
+      "1... e5",
+      " 1... e5",
+      "d5",
+      " d5",
+      "1... d5",
+      " 1... d5",
+      "c5",
+      " c5",
+      "1... c5",
+      " 1... c5",
+      "b5",
+      " b5",
+      "1... b5",
+      " 1... b5",
+      "a5",
+      " a5",
+      "1... a5",
+      " 1... a5"
+     ]
+    ]
+   ],
+   [
+    "call",
+    "Think.<|endoftext|>[Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4",
+    {
+     "temperature": null
+    }
+   ]
+  ],
+  "required": [
+   "pgns",
+   "prompts"
+  ],
+  "temperature": null
+ }
+}

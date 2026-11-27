@@ -5,8 +5,8 @@ from __future__ import annotations
 import typing as tp
 
 from .configuration_unimaia import (
-    TextEncoderType,
     UNIMAIA_OUTCOME_LABELS,
+    TextEncoderType,
     UniMaiaConfig,
     VLMModelArchitectureType,
 )

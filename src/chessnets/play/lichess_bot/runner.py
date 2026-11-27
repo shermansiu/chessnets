@@ -55,7 +55,7 @@ class LichessBotRunner:
         token: str | None = None,
         pipeline: tp.Any = None,
         client: LichessClientProtocol | None = None,
-    ) -> "LichessBotRunner":
+    ) -> LichessBotRunner:
         if pipeline is None:
             from ..pipelines.auto_pipeline import AutoPipeline
 

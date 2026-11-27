@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://chessnets.readthedocs.io/
+    about: Guides for loading models, running the UCI engine and the Lichess bot.
+  - name: Benchmark problems
+    url: https://github.com/shermansiu/chesseval/issues
+    about: Problems with benchmarks and scoring belong in ChessEval.
+  - name: Security problems
+    url: https://github.com/shermansiu/chessnets/security/advisories/new
+    about: Report vulnerabilities privately; see SECURITY.md.

@@ -6,28 +6,28 @@ from safetensors.torch import save_file
 
 from chessnets.loaders.load_lc0_model import load_pretrained_model
 from chessnets.loaders.safetensors import load_safetensors_file
-from chessnets.models.lc0_senet.configuration_lc0_senet import (
-    LeelaInferenceConfig,
-    LeelaNetModelConfig,
-    LeelaPolicy,
+from chessnets.models.lc0.configuration_lc0 import (
+    Lc0InferenceConfig,
+    Lc0ModelConfig,
+    Lc0Policy,
 )
-from chessnets.models.lc0_senet.modeling_lc0_senet import SeLeelaZeroNet
+from chessnets.models.lc0.modeling_lc0_seresnet import Lc0SeResNetModel
 
 
 def _small_config():
-    return LeelaInferenceConfig(
-        model=LeelaNetModelConfig(
+    return Lc0InferenceConfig(
+        model=Lc0ModelConfig(
             filters=8,
             residual_blocks=1,
             se_ratio=2,
-            policy=LeelaPolicy.convolution,
+            policy=Lc0Policy.convolution,
         )
     )
 
 
 def test_lc0_safetensors_round_trip_is_strict_and_json_first(tmp_path):
     config = _small_config()
-    model = SeLeelaZeroNet.from_config(config)
+    model = Lc0SeResNetModel.from_config(config)
     config.save_pretrained(tmp_path)
     (tmp_path / "config.yaml").write_text(
         "model:\n  filters: 16\n  residual_blocks: 2\n", encoding="utf-8"
@@ -36,7 +36,7 @@ def test_lc0_safetensors_round_trip_is_strict_and_json_first(tmp_path):
 
     restored = load_pretrained_model(tmp_path)
 
-    assert isinstance(restored, SeLeelaZeroNet)
+    assert isinstance(restored, Lc0SeResNetModel)
     assert restored.config.model.filters == 8
     assert not restored.training
     assert restored.state_dict().keys() == model.state_dict().keys()
@@ -45,7 +45,7 @@ def test_lc0_safetensors_round_trip_is_strict_and_json_first(tmp_path):
 
 
 def test_policy_mapping_is_not_checkpoint_state():
-    model = SeLeelaZeroNet.from_config(_small_config())
+    model = Lc0SeResNetModel.from_config(_small_config())
     assert "policy_head.policy_indices" not in model.state_dict()
     assert model.policy_head.policy_indices.shape == (1858,)
 
@@ -74,7 +74,7 @@ def test_sharded_safetensors_index_is_validated(tmp_path):
 def test_strict_load_rejects_missing_tensor(tmp_path):
     config = _small_config()
     config.save_pretrained(tmp_path)
-    model = SeLeelaZeroNet.from_config(config)
+    model = Lc0SeResNetModel.from_config(config)
     state = model.state_dict()
     state.pop(next(iter(state)))
     save_file(state, tmp_path / "model.safetensors")
@@ -86,9 +86,9 @@ def test_strict_load_rejects_missing_tensor(tmp_path):
 def test_build_with_state_dict_skips_init_and_keeps_policy_map():
     from chessnets.loaders.safetensors import build_with_state_dict
 
-    reference = SeLeelaZeroNet.from_config(_small_config())
+    reference = Lc0SeResNetModel.from_config(_small_config())
     model = build_with_state_dict(
-        lambda: SeLeelaZeroNet.from_config(_small_config()), reference.state_dict()
+        lambda: Lc0SeResNetModel.from_config(_small_config()), reference.state_dict()
     )
 
     for name, tensor in reference.state_dict().items():

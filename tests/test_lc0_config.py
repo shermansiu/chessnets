@@ -3,18 +3,18 @@ import pathlib
 
 import yaml
 
-from chessnets.models.lc0_senet.configuration_lc0_senet import (
-    LeelaActivation,
-    LeelaInferenceConfig,
-    LeelaNetConfig,
-    LeelaNetModelConfig,
-    LeelaOptimizer,
-    LeelaPrecision,
+from chessnets.models.lc0.configuration_lc0 import (
+    Lc0Activation,
+    Lc0Config,
+    Lc0InferenceConfig,
+    Lc0ModelConfig,
+    Lc0Optimizer,
+    Lc0Precision,
 )
 
 
 def test_inference_config_json_materializes_model_defaults(tmp_path):
-    config = LeelaInferenceConfig(model=LeelaNetModelConfig(filters=32))
+    config = Lc0InferenceConfig(model=Lc0ModelConfig(filters=32))
     path = config.save_pretrained(tmp_path)
 
     values = __import__("json").loads(path.read_text(encoding="utf-8"))
@@ -22,7 +22,7 @@ def test_inference_config_json_materializes_model_defaults(tmp_path):
     assert values["config_schema_version"] == 1
     assert values["model"]["filters"] == 32
     assert values["model"]["encoder_layers"] == 15
-    assert LeelaInferenceConfig.from_json(path) == config
+    assert Lc0InferenceConfig.from_json(path) == config
 
 
 def test_nested_config_yaml_types_and_round_trip(tmp_path):
@@ -63,12 +63,12 @@ def test_nested_config_yaml_types_and_round_trip(tmp_path):
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(values), encoding="utf-8")
 
-    config = LeelaNetConfig.from_yaml(path)
+    config = Lc0Config.from_yaml(path)
 
     assert dataclasses.is_dataclass(config)
-    assert config.model.default_activation is LeelaActivation.relu
-    assert config.training.optimizer is LeelaOptimizer.adam
-    assert config.training.precision is LeelaPrecision.half
+    assert config.model.default_activation is Lc0Activation.relu
+    assert config.training.optimizer is Lc0Optimizer.adam
+    assert config.training.precision is Lc0Precision.half
     assert config.training.path == tmp_path / "runs"
     assert config.training.loss_weights.policy == 2.5
     assert config.training.diff_focus_min == 0.025
@@ -82,7 +82,7 @@ def test_nested_config_yaml_types_and_round_trip(tmp_path):
 
     serialized = config.to_dict()
     yaml.safe_dump(serialized)
-    restored = LeelaNetConfig.from_dict(serialized)
+    restored = Lc0Config.from_dict(serialized)
     assert restored == config
 
 
@@ -100,5 +100,5 @@ def test_gpu_preserves_str_or_int(tmp_path):
         },
     }
 
-    assert LeelaNetConfig.from_dict({**values, "gpu": 0}).gpu == 0
-    assert LeelaNetConfig.from_dict({**values, "gpu": "0"}).gpu == "0"
+    assert Lc0Config.from_dict({**values, "gpu": 0}).gpu == 0
+    assert Lc0Config.from_dict({**values, "gpu": "0"}).gpu == "0"

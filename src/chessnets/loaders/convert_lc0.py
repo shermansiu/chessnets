@@ -13,8 +13,8 @@ import torch
 from safetensors.torch import save_file
 
 from chessnets.models._pretrained import resolve_pretrained_file
-from chessnets.models.lc0_senet.configuration_lc0_senet import (
-    LeelaInferenceConfig,
+from chessnets.models.lc0.configuration_lc0 import (
+    Lc0InferenceConfig,
 )
 
 
@@ -45,7 +45,7 @@ def _resolve_config(
     source_path: pathlib.Path,
     config_path: str | pathlib.Path | None,
     resolve_kwargs: dict[str, tp.Any],
-) -> tuple[pathlib.Path, LeelaInferenceConfig]:
+) -> tuple[pathlib.Path, Lc0InferenceConfig]:
     if config_path is not None:
         path = pathlib.Path(config_path).expanduser().resolve()
     else:
@@ -65,9 +65,9 @@ def _resolve_config(
                 )
 
     if path.suffix == ".json":
-        inference_config = LeelaInferenceConfig.from_json(path)
+        inference_config = Lc0InferenceConfig.from_json(path)
     else:
-        inference_config = LeelaInferenceConfig.from_yaml(path)
+        inference_config = Lc0InferenceConfig.from_yaml(path)
     return path, inference_config
 
 

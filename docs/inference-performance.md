@@ -27,6 +27,42 @@ predictions = pipeline.make_prediction(
 `batch_size` still controls the number of positions passed to the model at
 once. It is independent of the worker decision and must be positive.
 
+## Choosing a batch size
+
+The best batch size depends on the model, the device, the precision and how
+much memory is free, so calling a pipeline with `batch_size="auto"` finds
+one for you:
+
+```python
+predictions = pipeline(pgns, batch_size="auto")
+pipeline.last_batch_size  # The batch size that fit, such as 512.
+```
+
+It starts from a size suited to the pipeline and its device, and whenever a
+batch runs out of memory, it frees the memory, halves the batch size and
+tries the call again. The size that fits is kept for the pipeline's later
+calls. An integer `batch_size` is used exactly as given, as before.
+
+| Pipeline family | Starting size on CUDA | On the CPU |
+| --- | --- | --- |
+| LC0 (including Maia-1) | 1024 | 256 |
+| Maia2 | 1024 | 256 |
+| ChessCLIP | 256 | 64 |
+| Allie | 64 | 16 |
+| UniMaia | 8 | 8 |
+| Hugging Face text generation | 8 | 4 |
+| Others | 16 | 16 |
+
+Other devices, such as Apple's MPS, start from the CPU sizes. A subclass can set its own starting sizes with the `auto_batch_sizes`
+class attribute, such as `{"cpu": 32, "cuda": 128}`.
+
+`"auto"` is handled by calling the pipeline (`pipeline(...)`), not by
+`make_prediction`. Because a batch that runs out of memory is retried as a
+whole, a large request repeats some work when the first size does not fit;
+later calls start from the size that fit. Predictions do not depend on the
+batch size for the board-only models, but batched text generation pads its
+inputs, so a language model's probabilities can change slightly with it.
+
 LC0 converts PGNs and board histories eagerly. Consequently, its worker count
 applies to the conversion and post-processing stages; already-converted
 samples are batched locally without DataLoader workers. The `persistent_workers`

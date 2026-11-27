@@ -13,10 +13,10 @@ import numpy as np
 import torch
 import warnings
 from . import net_pb2 as pb
-from chessnets.models.lc0_senet import layers_lc0_senet
-from chessnets.models.lc0_senet import modeling_lc0_senet as sln
-from chessnets.models.lc0_cf import layers_lc0_cf as layers
-from chessnets.models.lc0_cf import modeling_lc0_cf as aln
+from chessnets.models.lc0 import layers_lc0_seresnet
+from chessnets.models.lc0 import modeling_lc0_seresnet as sln
+from chessnets.models.lc0 import layers_lc0_chessformer as layers
+from chessnets.models.lc0 import modeling_lc0_chessformer as aln
 
 
 def inverse_permutation(permutation: np.ndarray):
@@ -68,7 +68,7 @@ def load_batchnorm(convblock: pb.Weights.ConvBlock, pt_batchnorm: torch.nn.Batch
 
 def load_conv_block(
     convblock: pb.Weights.ConvBlock,
-    pt_convblock: layers_lc0_senet.ConvBatchNormReLU,
+    pt_convblock: layers_lc0_seresnet.ConvBatchNormReLU,
 ):
     """Denormalize a squeeze-excitation convolution block from a Protobuf."""
     load_plain_conv(convblock, pt_convblock.conv_layer, bias=False)
@@ -85,7 +85,7 @@ def load_plain_conv(
 
 
 def load_se_unit(
-    convblock: pb.Weights.SEunit, pt_convblock: layers_lc0_senet.SqueezeExcite
+    convblock: pb.Weights.SEunit, pt_convblock: layers_lc0_seresnet.SqueezeExcite
 ):
     """Denormalize a SE-unit from a Protobuf."""
     load_param(convblock.w1, pt_convblock.squeeze[0].weight)
@@ -110,7 +110,7 @@ def load_residual_layers(
 
 
 def load_conv_policy_head(
-    weights: pb.Weights, pt_policy_head: layers_lc0_senet.ConvPolicyHead
+    weights: pb.Weights, pt_policy_head: layers_lc0_seresnet.ConvPolicyHead
 ):
     load_conv_block(weights.policy1, pt_policy_head.conv_block)
     load_plain_conv(weights.policy, pt_policy_head.conv, bias=True)
@@ -118,7 +118,7 @@ def load_conv_policy_head(
 
 def load_conv_value_head(
     weights: pb.Weights,
-    pt_value_head: layers_lc0_senet.ConvValueHead,
+    pt_value_head: layers_lc0_seresnet.ConvValueHead,
 ):
     load_conv_block(weights.value, pt_value_head.conv_block)
     load_param(weights.ip1_val_w, pt_value_head.fc2.weight)
@@ -127,7 +127,7 @@ def load_conv_value_head(
     load_param(weights.ip2_val_b, pt_value_head.fc_out.bias)
 
 
-def fix_conv_50_rule_move(convblock: layers_lc0_senet.ConvBatchNormReLU):
+def fix_conv_50_rule_move(convblock: layers_lc0_seresnet.ConvBatchNormReLU):
     """Rescale the 50-move rule weights.
 
     Normalization is done during training but not inference.
@@ -151,7 +151,7 @@ def fix_attn_50_rule_move(attn_input_block: layers.AttentionInputBlock):
 
 def load_se_model(
     weights: pb.Weights,
-    pt_model: sln.SeLeelaZeroNet,
+    pt_model: sln.Lc0SeResNetModel,
     is_hectoplies_format: bool = False,
 ):
     load_conv_block(weights.input, pt_model.input_block)
@@ -323,7 +323,7 @@ def load_attn_moves_left_head(
 
 def load_bt_model(
     weights: pb.Weights,
-    pt_model: aln.BTLeelaZeroNet,
+    pt_model: aln.Lc0ChessFormerModel,
     is_hectoplies_format: bool = False,
 ):
     load_attn_input_block(weights, pt_model.input_block)

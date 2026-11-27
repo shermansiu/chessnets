@@ -1,6 +1,6 @@
 import numpy as np
 
-from chessnets.models.lc0_policy_map import (
+from chessnets.models.lc0.policy_map import (
     arc_position_encoding,
     attention_policy_indices,
     convolution_policy_indices,

@@ -7,14 +7,15 @@ from __future__ import annotations
 
 import dataclasses
 import pathlib
-from typing import Any, Optional, TypeAlias
+from typing import Any, TypeAlias
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from chessnets._optional import optional_module
-from chessnets.models.allie.data import UCITokenizer
 from chessnets.models.allie.configuration_allie import AllieConfig
+from chessnets.models.allie.data import UCITokenizer
 
 transformers = optional_module("transformers", "allie")
 
@@ -37,7 +38,7 @@ class CausalLMWithControlToken(nn.Module):
     def forward(
         self,
         input_ids: torch.LongTensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
+        attention_mask: torch.FloatTensor | None = None,
         output_hidden_states: bool = True,
         **kwargs: dict[str, Any],
     ):
@@ -98,9 +99,9 @@ class CausalLMWithRegressionHead(nn.Module):
     def forward(
         self,
         input_ids: torch.LongTensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        value_labels: Optional[torch.LongTensor] = None,
-        time_labels: Optional[torch.FloatTensor] = None,
+        attention_mask: torch.FloatTensor | None = None,
+        value_labels: torch.LongTensor | None = None,
+        time_labels: torch.FloatTensor | None = None,
         output_hidden_states: bool = True,
         **kwargs: dict[str, Any],
     ) -> Any:
@@ -168,7 +169,7 @@ class CausalLMWithRegressionHead(nn.Module):
         cls,
         config: AllieConfig,
         tokenizer: UCITokenizer,
-    ) -> "CausalLMWithRegressionHead":
+    ) -> CausalLMWithRegressionHead:
         """Initialize the Allie wrapper from a resolved config."""
         model = initialize_model(
             tokenizer,
@@ -196,7 +197,7 @@ class CausalLMWithRegressionHead(nn.Module):
         token: str | bool | None = None,
         local_files_only: bool = False,
         repo_type: str | None = "dataset",
-    ) -> "CausalLMWithRegressionHead":
+    ) -> CausalLMWithRegressionHead:
         config = config or AllieConfig.from_pretrained(
             pretrained_model_name_or_path,
             variant=variant,
@@ -222,7 +223,7 @@ class CausalLMWithRegressionHead(nn.Module):
             local_files_only=local_files_only,
             repo_type=repo_type,
         )
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
         model.load_state_dict(checkpoint["model"])
         model.to(device)
         if is_eval:

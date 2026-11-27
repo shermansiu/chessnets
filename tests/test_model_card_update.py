@@ -59,7 +59,12 @@ def test_maia1_card_preserves_sources_and_is_idempotent(tmp_path):
 
 @pytest.mark.parametrize(
     ("architecture", "transformer"),
-    [("BTLeelaZeroNet", True), ("SeLeelaZeroNet", False)],
+    [
+        ("Lc0ChessFormerModel", True),
+        ("Lc0SeResNetModel", False),
+        ("BTLeelaZeroNet", True),
+        ("SeLeelaZeroNet", False),
+    ],
 )
 def test_lc0_card_cites_by_architecture(tmp_path, architecture, transformer):
     repo = _repo(

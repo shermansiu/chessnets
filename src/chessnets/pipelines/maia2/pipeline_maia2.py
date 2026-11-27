@@ -16,14 +16,14 @@ if tp.TYPE_CHECKING:
     from chessnets.models.maia2 import Maia2Model
 
 from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
-from ..outputs import Maia2ChessMovePrediction, ChessMovePredictionDataset
+from ..outputs import ChessMovePredictionDataset, Maia2ChessMovePrediction
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     check_position_is_playable,
     iter_dataset_batches,
     mirror_move,
+    progress,
     resolve_num_workers,
 )
 
@@ -109,6 +109,8 @@ class Maia2Dataset(torch.utils.data.Dataset):
 
 
 class Maia2Pipeline(Pipeline):
+    auto_batch_sizes = {"cpu": 256, "cuda": 1024}
+
     def __init__(
         self,
         model: Maia2Model,

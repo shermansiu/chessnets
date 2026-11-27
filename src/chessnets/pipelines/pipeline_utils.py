@@ -96,6 +96,19 @@ def free_memory(collect_garbage: bool = False):
         torch.cuda.ipc_collect()
 
 
+def is_out_of_memory_error(error: BaseException) -> bool:
+    """Whether ``error``, or an error it was raised from, is an out-of-memory error."""
+    seen = set()
+    while error is not None and id(error) not in seen:
+        seen.add(id(error))
+        if isinstance(error, (torch.cuda.OutOfMemoryError, MemoryError)):
+            return True
+        if isinstance(error, RuntimeError) and "out of memory" in str(error):
+            return True
+        error = error.__cause__ or error.__context__
+    return False
+
+
 def process_map(function, *iterables, **kwargs):
     try:
         from tqdm.contrib.concurrent import process_map as _process_map

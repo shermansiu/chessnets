@@ -6,7 +6,6 @@ import pytest
 
 from chessnets.pipelines.text_generation import pipeline_text_generation as text
 
-
 NUMBERED_REGEX = re.compile(text.NUMBERED_MOVE_REGEX)
 PGN_CONTINUATION_REGEX = re.compile(text.PGN_CONTINUATION_MOVE_REGEX)
 
@@ -33,9 +32,7 @@ def _history(board):
 )
 def test_numbered_choices_use_position_move_number_and_turn(fen, uci, expected):
     board = chess.Board(fen)
-    choices = text.HFTransformersSimpleTextPipeline.legal_move_choices(
-        _history(board), [chess.Move.from_uci(uci)]
-    )
+    choices = text.numbered_move_choices(_history(board), [chess.Move.from_uci(uci)])
 
     assert choices == expected
     assert all(NUMBERED_REGEX.fullmatch(choice) for choice in choices)
@@ -45,9 +42,7 @@ def test_pgn_header_choices_cover_all_regex_whitespace_and_number_variants():
     board = chess.Board()
     move = chess.Move.from_uci("e2e4")
 
-    choices = text.HFTransformersSimpleTextPipelinePgnHeader.legal_move_choices(
-        _history(board), [move]
-    )
+    choices = text.pgn_continuation_move_choices(_history(board), [move])
 
     assert choices == ["e4", " e4", "1. e4", " 1. e4"]
     assert all(PGN_CONTINUATION_REGEX.fullmatch(choice) for choice in choices)
@@ -57,7 +52,7 @@ def test_pgn_header_choices_use_ellipsis_for_black():
     board = chess.Board()
     board.push_uci("e2e4")
 
-    choices = text.HFTransformersSimpleTextPipelinePgnHeader.legal_move_choices(
+    choices = text.pgn_continuation_move_choices(
         _history(board), [chess.Move.from_uci("e7e5")]
     )
 
@@ -86,8 +81,10 @@ def test_choice_forward_builds_one_generator_per_position(monkeypatch):
             types=types.SimpleNamespace(Choice=Choice),
         ),
     )
-    pipeline = object.__new__(text.HFTransformersSimpleTextPipelinePgnHeader)
-    pipeline.constraint = "choice"
+    pipeline = object.__new__(text.TextGenerationPipeline)
+    pipeline.pipeline_config = text.TextGenerationPipelineConfig(
+        prompt_format="pgn_header", constraint="choice"
+    )
     pipeline.model = "model"
     pipeline.temperature = 0.25
     white_board = chess.Board()
@@ -120,8 +117,13 @@ def test_choice_forward_builds_one_generator_per_position(monkeypatch):
     ]
 
 
-def test_simple_pipeline_rejects_unknown_constraint_before_model_loading():
-    pipeline = object.__new__(text.HFTransformersSimpleTextPipeline)
+def test_pipeline_rejects_unknown_constraint_before_model_loading():
+    pipeline = object.__new__(text.TextGenerationPipeline)
 
     with pytest.raises(ValueError, match="constraint"):
         pipeline.__init__("unused", constraint="unknown")
+
+
+def test_config_rejects_unknown_prompt_format():
+    with pytest.raises(ValueError, match="prompt format"):
+        text.TextGenerationPipelineConfig(prompt_format="unknown")

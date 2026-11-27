@@ -6,15 +6,16 @@ import dataclasses
 import functools
 import logging
 import math
+import types
 import typing as tp
 import warnings
-import types
 
 import chess
 
+from chessnets._optional import optional_module
 from chessnets.models.allie import data as allie_data
 from chessnets.utils import board_history
-from chessnets._optional import optional_module
+
 from .pipeline_utils import progress
 
 IPython = types.SimpleNamespace(display=optional_module("IPython.display", "notebook"))
@@ -428,7 +429,8 @@ class ChessMovePredictionDataset(tp.Generic[T]):
             ]
         if issubclass(self.generic_type_arg, AllieMovePrediction):
             warnings.warn(
-                "Predicted resignation probabilities are not implemented for AllieMovePrediction. Returning None."
+                "Predicted resignation probabilities are not implemented for AllieMovePrediction. Returning None.",
+                stacklevel=2,
             )
         return None
 

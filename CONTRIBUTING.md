@@ -37,7 +37,12 @@ tests/
 ```
 
 Use lower-case snake case for modules and `FamilyConfig`, `FamilyModel`, and
-`FamilyPipeline` for public classes. Put shared checkpoint resolution in
+`FamilyPipeline` for public classes. A family with several architectures puts
+each in `modeling_<family>_<architecture>.py` and names its class
+`Family<Architecture>Model`, as `models/lc0/` does with `Lc0ChessFormerModel`
+and `Lc0SeResNetModel`. Put variants that differ only in prompts or inputs
+behind a frozen config dataclass (such as `TextGenerationPipelineConfig`)
+rather than in subclasses. Put shared checkpoint resolution in
 `models/_pretrained.py` and shared inference mechanics in
 `pipelines/pipeline_utils.py`. Avoid adding family-specific behavior to those
 modules.

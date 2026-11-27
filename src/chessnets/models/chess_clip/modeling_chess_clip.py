@@ -15,13 +15,13 @@ The original implementation is a fork of open_clip, which is available at https:
 This file contains the changes made to open_clip to implement the ChessCLIP model, so that it can be loaded without installing the forked repository.
 """
 
-from collections import OrderedDict
 import dataclasses
 import logging
 import os
 import pathlib
 import typing as tp
 import warnings
+from collections import OrderedDict
 
 import huggingface_hub
 import numpy as np
@@ -38,15 +38,15 @@ freeze_batch_norm_2d = import_optional(
 ).freeze_batch_norm_2d
 
 
-class ChessCLIP(torch.nn.Module):
+class ChessCLIPModel(torch.nn.Module):
     def __init__(
         self,
         embed_dim: int,
         chess_vision_cfg: open_clip.CLIPVisionCfg,
-        text_cfg: tp.Optional[open_clip.CLIPTextCfg] = None,
+        text_cfg: open_clip.CLIPTextCfg | None = None,
         pretrain_model=None,
         quick_gelu: bool = False,
-        cast_dtype: tp.Optional[torch.dtype] = None,
+        cast_dtype: torch.dtype | None = None,
     ):
         super().__init__()
         self.visual = _build_vision_tower(
@@ -116,21 +116,21 @@ class ChessCLIP(torch.nn.Module):
         """Load the published ChessCLIP checkpoint by repository ID."""
         if pretrained_model_name_or_path != "Waterhorse/ChessCLIP":
             raise ValueError(
-                "ChessCLIP currently supports only 'Waterhorse/ChessCLIP'."
+                "ChessCLIPModel currently supports only 'Waterhorse/ChessCLIP'."
             )
         return load_pretrained_chessclip(**kwargs)
 
 
 @dataclasses.dataclass
 class CLIPVisionCfg:
-    layers: tp.Union[tp.Tuple[int, int, int, int], int] = 12
+    layers: tuple[int, int, int, int] | int = 12
     width: int = 768
     head_width: int = 64
     mlp_ratio: float = 4.0
     patch_size: int = 16
-    image_size: tp.Union[tp.Tuple[int, int], int] = 224
+    image_size: tuple[int, int] | int = 224
 
-    ls_init_value: tp.Optional[float] = None  # layer scale initial value
+    ls_init_value: float | None = None  # layer scale initial value
     patch_dropout: float = 0.0  # what fraction of patches to dropout during training (0 would mean disabled and no patches dropped) - 0.5 to 0.75 recommended in the paper for optimal results
     attentional_pool: bool = False  # whether to use attentional pooler in the last embedding layer (overrides pool_type)
     attn_pooler_queries: int = 256  # n_queries for attentional pooler
@@ -140,8 +140,8 @@ class CLIPVisionCfg:
     final_ln_after_pool: bool = False  # apply final LayerNorm after pooling
     pool_type: str = "tok"
     output_tokens: bool = False
-    act_kwargs: tp.Optional[dict] = None
-    norm_kwargs: tp.Optional[dict] = None
+    act_kwargs: dict | None = None
+    norm_kwargs: dict | None = None
 
     in_channels: int = 3
     film: bool = False
@@ -149,7 +149,7 @@ class CLIPVisionCfg:
     action_dim: int = 1858
 
     # Custom attention block settings
-    block_type: tp.Optional[str] = (
+    block_type: str | None = (
         None  # attention block type ('default', 'custom'), auto-selects 'custom' if any below features enabled
     )
     qk_norm: bool = False  # apply layer norm to q and k in attention
@@ -163,7 +163,7 @@ class CLIPVisionCfg:
     scale_attn: bool = False  # apply layer norm after full attention block
     scale_fc: bool = False  # apply layer norm in MLP block
 
-    timm_model_name: tp.Optional[str] = (
+    timm_model_name: str | None = (
         None  # a valid model name overrides layers, width, patch_size
     )
     timm_model_pretrained: bool = (
@@ -177,7 +177,7 @@ class CLIPVisionCfg:
     )
     timm_proj_bias: bool = False  # enable bias final projection
     timm_drop: float = 0.0  # head dropout
-    timm_drop_path: tp.Optional[float] = None  # backbone stochastic depth
+    timm_drop_path: float | None = None  # backbone stochastic depth
 
 
 def build_model_from_openai_state_dict_chess(
@@ -267,7 +267,7 @@ def build_model_from_openai_state_dict_chess(
     )  # OpenAI state dicts are partially converted to float16
     openai_model.load_state_dict(state_dict)
 
-    model = ChessCLIP(
+    model = ChessCLIPModel(
         embed_dim,
         chess_vision_cfg=chess_vision_cfg,
         text_cfg=None,
@@ -282,10 +282,10 @@ def build_model_from_openai_state_dict_chess(
 
 def load_openai_model(
     name: str,
-    precision: tp.Optional[str] = None,
-    device: tp.Optional[tp.Union[str, torch.device]] = None,
+    precision: str | None = None,
+    device: str | torch.device | None = None,
     jit: bool = True,
-    cache_dir: tp.Optional[str] = None,
+    cache_dir: str | None = None,
     chess_vision_cfg=None,
 ):
     """Load a CLIP model
@@ -334,7 +334,8 @@ def load_openai_model(
         # loading saved state dict
         if jit:
             warnings.warn(
-                f"File {model_path} is not a JIT archive. Loading as a state dict instead"
+                f"File {model_path} is not a JIT archive. Loading as a state dict instead",
+                stacklevel=2,
             )
             jit = False
         state_dict = torch.load(model_path, map_location="cpu")
@@ -437,16 +438,16 @@ def load_openai_model(
 
 def create_model(
     model_name: str,
-    pretrained: tp.Optional[str] = None,
+    pretrained: str | None = None,
     precision: str = "fp32",
-    device: tp.Union[str, torch.device] = "cpu",
+    device: str | torch.device = "cpu",
     jit: bool = False,
     force_quick_gelu: bool = False,
     force_custom_text: bool = False,
-    force_patch_dropout: tp.Optional[float] = None,
+    force_patch_dropout: float | None = None,
     pretrained_image: bool = False,
     pretrained_hf: bool = True,
-    cache_dir: tp.Optional[str] = None,
+    cache_dir: str | None = None,
 ):
     model_name = model_name.replace(
         "/", "-"
@@ -821,7 +822,7 @@ class FiLMModifiedResNet(nn.Module):
 
     @torch.jit.ignore
     def set_grad_checkpointing(self, enable=True):
-        # FIXME support for non-transformer
+        # Not supported for this ResNet tower, as in OpenCLIP's ModifiedResNet.
         pass
 
     def stem(self, x):
@@ -876,7 +877,7 @@ def _build_vision_tower(
     embed_dim: int,
     vision_cfg: CLIPVisionCfg,
     quick_gelu: bool = False,
-    cast_dtype: tp.Optional[torch.dtype] = None,
+    cast_dtype: torch.dtype | None = None,
 ):
     if isinstance(vision_cfg, dict):
         vision_cfg = CLIPVisionCfg(**vision_cfg)
@@ -957,9 +958,9 @@ def load_pretrained_chessclip(
     model_name: str = "chessclip-quickgelu",
     pretrained: str = "openai",
     precision: str = "fp32",
-    device: tp.Union[str, torch.device] = "cpu",
+    device: str | torch.device = "cpu",
     jit: bool = False,
-    cache_dir: tp.Optional[str] = None,
+    cache_dir: str | None = None,
 ):
     model = create_model(
         model_name,
@@ -975,3 +976,14 @@ def load_pretrained_chessclip(
         )
         open_clip.load_checkpoint(model, chess_clip_checkpoint_path, weights_only=False)
     return model
+
+
+__all__ = [
+    "CLIPVisionCfg",
+    "ChessCLIPModel",
+    "FiLMModifiedResNet",
+    "build_model_from_openai_state_dict_chess",
+    "create_model",
+    "load_openai_model",
+    "load_pretrained_chessclip",
+]

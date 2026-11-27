@@ -5,7 +5,6 @@ import torch
 from chessnets.pipelines.lc0.pipeline_lc0 import Lc0Dataset, Lc0Pipeline
 from chessnets.utils import decode_policy
 
-
 PGN = "1. e4 e5 2. Nf3 *"
 
 

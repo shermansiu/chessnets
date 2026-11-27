@@ -7,9 +7,9 @@ import pathlib
 
 import yaml
 
-from chessnets.models.lc0_cf import modeling_lc0_cf
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
-from chessnets.models.lc0_senet import modeling_lc0_senet
+from chessnets.models.lc0 import modeling_lc0_chessformer
+from chessnets.models.lc0 import configuration_lc0 as leela_config
+from chessnets.models.lc0 import modeling_lc0_seresnet
 
 from . import checkpoint, load_protobuf
 from . import net_pb2 as pb
@@ -43,7 +43,7 @@ class ProtobufAdapter:
                 if config_path.suffix == ".json"
                 else yaml.safe_load(stream) or {}
             )
-        config = leela_config.LeelaInferenceConfig.from_dict(config_values)
+        config = leela_config.Lc0InferenceConfig.from_dict(config_values)
         net = checkpoint.read_checkpoint(model_path)
         if net.format.weights_encoding != pb.Format.LINEAR16:
             raise ValueError("Only LINEAR16 protobuf weights are currently supported")
@@ -67,7 +67,7 @@ class ProtobufAdapter:
                 raise ValueError(
                     "Config residual blocks do not match the protobuf network"
                 )
-            model = modeling_lc0_senet.SeLeelaZeroNet.from_config(config)
+            model = modeling_lc0_seresnet.Lc0SeResNetModel.from_config(config)
             load_protobuf.load_se_model(net.weights, model)
         elif network in {
             pb.NetworkFormat.NETWORK_ATTENTIONBODY_WITH_HEADFORMAT,
@@ -75,7 +75,7 @@ class ProtobufAdapter:
         }:
             if net.format.network_format.policy != pb.NetworkFormat.POLICY_ATTENTION:
                 raise ValueError("Attention protobuf must use an attention policy")
-            model = modeling_lc0_cf.BTLeelaZeroNet.from_config(config)
+            model = modeling_lc0_chessformer.Lc0ChessFormerModel.from_config(config)
             load_protobuf.load_bt_model(net.weights, model)
         else:
             raise ValueError(f"Unsupported network format {network}")

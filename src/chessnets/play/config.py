@@ -99,7 +99,7 @@ class LichessBotConfig:
         object.__setattr__(self, "model_kwargs", dict(self.model_kwargs))
 
     @classmethod
-    def from_dict(cls, data: dict[str, tp.Any]) -> "LichessBotConfig":
+    def from_dict(cls, data: dict[str, tp.Any]) -> LichessBotConfig:
         """Load and validate a configuration mapping.
 
         Unknown top-level and nested keys are rejected so a misspelled safety
@@ -151,7 +151,7 @@ class LichessBotConfig:
         )
 
     @classmethod
-    def from_yaml(cls, path: str | pathlib.Path) -> "LichessBotConfig":
+    def from_yaml(cls, path: str | pathlib.Path) -> LichessBotConfig:
         path = pathlib.Path(path)
         with path.open(encoding="utf-8") as stream:
             data = yaml.safe_load(stream) or {}
@@ -199,7 +199,7 @@ class UciEngineConfig:
         object.__setattr__(self, "model_kwargs", dict(self.model_kwargs))
 
     @classmethod
-    def from_dict(cls, data: dict[str, tp.Any]) -> "UciEngineConfig":
+    def from_dict(cls, data: dict[str, tp.Any]) -> UciEngineConfig:
         """Load a strict UCI configuration mapping."""
 
         data = dict(data)
@@ -229,7 +229,7 @@ class UciEngineConfig:
         )
 
     @classmethod
-    def from_yaml(cls, path: str | pathlib.Path) -> "UciEngineConfig":
+    def from_yaml(cls, path: str | pathlib.Path) -> UciEngineConfig:
         path = pathlib.Path(path)
         with path.open(encoding="utf-8") as stream:
             data = yaml.safe_load(stream) or {}

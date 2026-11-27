@@ -1,18 +1,18 @@
 """Convolutional (SE-ResNet) Lc0 networks, as used by Maia-1 and older Lc0 nets.
 
-Original ChessNets implementation; see ``layers_lc0_senet`` for provenance.
+Original ChessNets implementation; see ``layers_lc0_seresnet`` for provenance.
 """
 
 from __future__ import annotations
 
-from collections import OrderedDict
 import typing as tp
+from collections import OrderedDict
 
 import torch
 from torch import nn
 
-import chessnets.models.lc0_senet.configuration_lc0_senet as leela_config
-from chessnets.models.lc0_senet.layers_lc0_senet import (
+import chessnets.models.lc0.configuration_lc0 as leela_config
+from chessnets.models.lc0.layers_lc0_seresnet import (
     ConvBatchNormReLU,
     ConvPolicyHead,
     ConvValueHead,
@@ -31,7 +31,7 @@ class PolicyValueModelOutput(tp.NamedTuple):
     value: torch.Tensor
 
 
-class SeLeelaZeroNet(nn.Module):
+class Lc0SeResNetModel(nn.Module):
     """SE-ResNet Lc0 network with a convolutional policy head and WDL value head."""
 
     def __init__(self, num_filters: int, num_residual_blocks: int, se_ratio: int):
@@ -51,7 +51,7 @@ class SeLeelaZeroNet(nn.Module):
     @classmethod
     def from_config(
         cls,
-        config: leela_config.LeelaNetConfig | leela_config.LeelaInferenceConfig,
+        config: leela_config.Lc0Config | leela_config.Lc0InferenceConfig,
     ):
         model = cls(
             num_filters=config.model.filters,
@@ -90,4 +90,4 @@ class SeLeelaZeroNet(nn.Module):
         return next(self.parameters()).dtype
 
 
-__all__ = ["PolicyValueModelOutput", "SeLeelaZeroNet"]
+__all__ = ["PolicyValueModelOutput", "Lc0SeResNetModel"]

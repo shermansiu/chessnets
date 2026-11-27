@@ -43,6 +43,16 @@ def test_config_architecture_dispatch_passes_source_and_loader_kwargs(tmp_path):
     }
 
 
+@pytest.mark.parametrize(
+    "architecture",
+    ["Lc0ChessFormerModel", "Lc0SeResNetModel", "BTLeelaZeroNet", "SeLeelaZeroNet"],
+)
+def test_lc0_architectures_include_pre_0_2_class_names(architecture):
+    # Checkpoints converted before 0.2.0 name the old classes in config.json.
+    info = AutoPipeline.get_architecture_info(architecture)
+    assert info.architecture in {"Lc0ChessFormerModel", "Lc0SeResNetModel"}
+
+
 def test_exact_id_registration_precedes_config_metadata(tmp_path):
     # Exact registrations must not inspect metadata at all; this is malformed
     # on purpose to catch an accidental config read before the registry lookup.
@@ -97,45 +107,29 @@ def test_unknown_config_architecture_reports_metadata(tmp_path):
         AutoPipeline.from_pretrained(tmp_path)
 
 
+CHAT = "Waterhorse/chessgpt-chat-v1"
+BASE = "Waterhorse/chessgpt-base-v1"
+
+
 @pytest.mark.parametrize(
-    "profile_id, checkpoint_id, pipeline_class_name",
+    "profile_id, checkpoint_id, prompt_format",
     [
+        (CHAT, CHAT, None),
+        (f"{CHAT}_simple", CHAT, "chat"),
+        (f"{CHAT}_simple_original", CHAT, "chat_original"),
+        (f"{CHAT}_general_policy", CHAT, "general_policy"),
+        (BASE, BASE, "pgn_header"),
         (
-            "Waterhorse/chessgpt-chat-v1",
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersProbabilityTextPipeline",
-        ),
-        (
-            "Waterhorse/chessgpt-chat-v1_simple",
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipeline",
-        ),
-        (
-            "Waterhorse/chessgpt-chat-v1_simple_original",
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipelineOriginal",
-        ),
-        (
-            "Waterhorse/chessgpt-chat-v1_general_policy",
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipelineGeneralPolicy",
-        ),
-        (
-            "Waterhorse/chessgpt-base-v1",
-            "Waterhorse/chessgpt-base-v1",
-            "HFTransformersSimpleTextPipelinePgnHeader",
-        ),
-        (
-            "Waterhorse/chessgpt-base-v1_with-time-control-and-elo",
-            "Waterhorse/chessgpt-base-v1",
-            "HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo",
+            f"{BASE}_with-time-control-and-elo",
+            BASE,
+            "pgn_header_with_time_control_and_elo",
         ),
     ],
 )
 def test_chessgpt_profiles_use_curated_pipeline_and_checkpoint(
-    monkeypatch, profile_id, checkpoint_id, pipeline_class_name
+    monkeypatch, profile_id, checkpoint_id, prompt_format
 ):
-    from chessnets.pipelines.text_generation import pipeline_text_generation
+    from chessnets.pipelines.text_generation import pipeline_text_generation as text
 
     calls = []
 
@@ -145,11 +139,12 @@ def test_chessgpt_profiles_use_curated_pipeline_and_checkpoint(
             calls.append((source, kwargs))
             return "pipeline"
 
-    monkeypatch.setattr(
-        pipeline_text_generation,
-        pipeline_class_name,
-        StubPipeline,
+    class_name = (
+        "TransformersProbabilityPipeline"
+        if prompt_format is None
+        else "TextGenerationPipeline"
     )
+    monkeypatch.setattr(text, class_name, StubPipeline)
 
     result = AutoPipeline.from_pretrained(
         profile_id,
@@ -158,38 +153,23 @@ def test_chessgpt_profiles_use_curated_pipeline_and_checkpoint(
         local_files_only=True,
     )
 
-    assert result == "pipeline"
-    assert calls == [
-        (
-            checkpoint_id,
-            {
-                "device": "cpu",
-                "revision": "pinned",
-                "local_files_only": True,
-            },
+    expected = {"device": "cpu", "revision": "pinned", "local_files_only": True}
+    if prompt_format is not None:
+        expected["pipeline_config"] = text.TextGenerationPipelineConfig(
+            prompt_format=prompt_format
         )
-    ]
+    assert result == "pipeline"
+    assert calls == [(checkpoint_id, expected)]
 
 
 @pytest.mark.parametrize(
-    "profile_id, checkpoint_id, pipeline_class_name",
-    [
-        (
-            "Waterhorse/chessgpt-chat-v1_simple",
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipeline",
-        ),
-        (
-            "Waterhorse/chessgpt-base-v1",
-            "Waterhorse/chessgpt-base-v1",
-            "HFTransformersSimpleTextPipelinePgnHeader",
-        ),
-    ],
+    "profile_id, checkpoint_id, prompt_format",
+    [(f"{CHAT}_simple", CHAT, "chat"), (BASE, BASE, "pgn_header")],
 )
 def test_chessgpt_profiles_pass_choice_constraint_to_pipeline(
-    monkeypatch, profile_id, checkpoint_id, pipeline_class_name
+    monkeypatch, profile_id, checkpoint_id, prompt_format
 ):
-    from chessnets.pipelines.text_generation import pipeline_text_generation
+    from chessnets.pipelines.text_generation import pipeline_text_generation as text
 
     calls = []
 
@@ -199,22 +179,20 @@ def test_chessgpt_profiles_pass_choice_constraint_to_pipeline(
             calls.append((source, kwargs))
             return "pipeline"
 
-    monkeypatch.setattr(
-        pipeline_text_generation,
-        pipeline_class_name,
-        StubPipeline,
-    )
+    monkeypatch.setattr(text, "TextGenerationPipeline", StubPipeline)
 
-    result = AutoPipeline.from_pretrained(
-        profile_id,
-        device="cpu",
-        constraint="choice",
-    )
+    result = AutoPipeline.from_pretrained(profile_id, device="cpu", constraint="choice")
 
     assert result == "pipeline"
     assert calls == [
         (
             checkpoint_id,
-            {"device": "cpu", "constraint": "choice"},
+            {
+                "device": "cpu",
+                "constraint": "choice",
+                "pipeline_config": text.TextGenerationPipelineConfig(
+                    prompt_format=prompt_format
+                ),
+            },
         )
     ]

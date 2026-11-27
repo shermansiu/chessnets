@@ -10,7 +10,6 @@ import chess.pgn
 
 from .matching import ExactTimeControl, time_control_from_clock
 
-
 TERMINAL_STATUSES = frozenset(
     {
         "aborted",
@@ -23,7 +22,6 @@ TERMINAL_STATUSES = frozenset(
         "cheat",
         "noStart",
         "unknownFinish",
-        "outoftime",
         "variantEnd",
         "variantLoss",
         "variantWin",
@@ -65,7 +63,7 @@ class LiveGameState:
     @classmethod
     def from_game_full(
         cls, event: dict[str, tp.Any], bot_username: str
-    ) -> "LiveGameState":
+    ) -> LiveGameState:
         if event.get("variant", {}).get("key", "standard") != "standard":
             raise ValueError("Only the standard chess variant is currently supported")
         clock = event.get("clock") or {}

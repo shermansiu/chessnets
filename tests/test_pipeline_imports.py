@@ -50,7 +50,7 @@ def test_model_id_lookup_does_not_import_torch_or_pipelines():
 def test_maia2_support_modules_are_lazy_without_model_dependency():
     modules = _run_import_check(
         "import chessnets.models.maia2",
-        "from chessnets.models.maia2 import Config",
+        "from chessnets.models.maia2 import Maia2Config",
         "from chessnets.models.maia2 import utils",
         "import chessnets.pipelines.maia2",
         "from chessnets.utils import board_history",
@@ -96,7 +96,7 @@ def test_canonical_pipeline_imports_do_not_use_legacy_implementation():
     modules = _run_import_check(
         "from chessnets.pipelines.lc0 import Lc0Pipeline",
         "from chessnets.pipelines.unimaia import UniMaiaPipeline",
-        "from chessnets.pipelines.text_generation import OutlinesDataset",
+        "from chessnets.pipelines.text_generation import TextGenerationPipeline",
     )
     assert "chessnets.pipelines.lc0.pipeline_lc0" in modules
     assert "chessnets.pipelines.unimaia.pipeline_unimaia" in modules

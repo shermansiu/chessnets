@@ -14,11 +14,11 @@ from chessnets.utils import board_history, decode_policy
 from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
 from ..outputs import ChessMovePrediction, ChessMovePredictionDataset
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     check_position_is_playable,
     iter_dataset_batches,
+    progress,
     resolve_num_workers,
 )
 
@@ -94,6 +94,9 @@ GAME_OUTCOMES = ["1-0", "1/2-1/2", "0-1"]
 
 
 class Lc0Pipeline(Pipeline):
+    # Lc0 and Maia-1 networks are small enough for large batches.
+    auto_batch_sizes = {"cpu": 256, "cuda": 1024}
+
     def __init__(
         self,
         model: torch.nn.Module,

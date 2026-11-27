@@ -1,4 +1,4 @@
-"""Lc0 attention-body (BT/CF) network for PyTorch.
+"""Layers of the Lc0 ChessFormer (attention-body) network, called BT in Lc0 development.
 
 Original ChessNets implementation. The architecture was derived by exporting Lc0
 checkpoints to ONNX, inspecting the graph, and validating outputs numerically
@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import functools
 import typing as tp
+
 import attrs
 import torch
 from torch import nn
 from torch.nn import functional as F
-from chessnets.models import lc0_policy_map
-from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
+
+from chessnets.models.lc0 import configuration_lc0 as leela_config
+
+from . import policy_map
 
 BOARD_SIZE = 64
 NUM_PLANES = 112
@@ -95,7 +98,7 @@ class DeepNorm:
 
 
 class FFN(nn.Module):
-    def __init__(self, config: leela_config.LeelaNetConfig, deep_norm: DeepNorm):
+    def __init__(self, config: leela_config.Lc0Config, deep_norm: DeepNorm):
         super().__init__()
         self.dense1 = nn.Linear(
             config.model.embedding_size, config.model.encoder_dff, bias=True
@@ -118,11 +121,11 @@ class AttentionArcEncodingInputBlock(nn.Module):
     Used in T82 model.
     """
 
-    def __init__(self, config: leela_config.LeelaNetConfig):
+    def __init__(self, config: leela_config.Lc0Config):
         super().__init__()
         self.register_buffer(
             "pos_encoding",
-            torch.from_numpy(lc0_policy_map.arc_position_encoding()),
+            torch.from_numpy(policy_map.arc_position_encoding()),
             persistent=False,
         )
         self.embedding_size = config.model.embedding_size
@@ -149,7 +152,7 @@ class AttentionArcEncodingInputBlock(nn.Module):
 
 
 class AttentionInputBlock(nn.Module):
-    def __init__(self, config: leela_config.LeelaNetConfig, deep_norm: DeepNorm):
+    def __init__(self, config: leela_config.Lc0Config, deep_norm: DeepNorm):
         super().__init__()
         self.preprocess = nn.Linear(
             BOARD_EMBED_SIZE, BOARD_SIZE * config.model.embedding_dense_sz, bias=True
@@ -193,7 +196,7 @@ class Smolgen(nn.Module):
     Geometric Attention Bias (GAB) is the academic name for Smolgen in the official paper.
     """
 
-    def __init__(self, config: leela_config.LeelaNetConfig):
+    def __init__(self, config: leela_config.Lc0Config):
         super().__init__()
         self.n_heads = config.model.encoder_heads
         self.smolgen_hidden_channels = config.model.smolgen_hidden_channels
@@ -233,7 +236,7 @@ class Smolgen(nn.Module):
 class MultiHeadedAttention(nn.Module):
     def __init__(
         self,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
         deepnorm_init_: tp.Callable,
     ):
         super().__init__()
@@ -294,7 +297,7 @@ class MultiHeadedAttention(nn.Module):
 class EncoderLayer(nn.Module):
     def __init__(
         self,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
         deep_norm: DeepNorm,
     ):
         super().__init__()
@@ -424,7 +427,7 @@ class GatedMultiheadAttention(nn.Module):
 class CrossEncoderLayer(EncoderLayer):
     def __init__(
         self,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
         text_encoder_config: tp.Any,
         deep_norm: DeepNorm,
         should_use_gated_attention: bool = True,
@@ -492,7 +495,7 @@ class ApplyAttentionPolicyMap(nn.Module):
         super().__init__()
         self.register_buffer(
             "idx",
-            torch.from_numpy(lc0_policy_map.attention_policy_indices()),
+            torch.from_numpy(policy_map.attention_policy_indices()),
             persistent=False,
         )
 
@@ -506,7 +509,7 @@ class ApplyAttentionPolicyMap(nn.Module):
 class AttentionPolicyHead(nn.Module):
     def __init__(
         self,
-        config: leela_config.LeelaNetConfig,
+        config: leela_config.Lc0Config,
         depth: int | None = None,
         opponent=False,
     ):
@@ -583,7 +586,7 @@ class AttentionPolicyHead(nn.Module):
 
 class AttentionValueHead(nn.Module):
     def __init__(
-        self, config: leela_config.LeelaNetConfig, wdl=True, use_err=True, use_cat=True
+        self, config: leela_config.Lc0Config, wdl=True, use_err=True, use_cat=True
     ):
         super().__init__()
         self.embed = nn.Linear(
@@ -639,7 +642,7 @@ class AttentionValueHead(nn.Module):
 
 
 class AttentionMovesLeftHead(nn.Module):
-    def __init__(self, config: leela_config.LeelaNetConfig):
+    def __init__(self, config: leela_config.Lc0Config):
         super().__init__()
         self.embed = nn.Linear(
             config.model.embedding_size,
@@ -664,7 +667,7 @@ class AttentionMovesLeftHead(nn.Module):
 
 
 class AttentionOutcomeHead(nn.Module):
-    def __init__(self, config: leela_config.LeelaNetConfig, num_categories: int = 12):
+    def __init__(self, config: leela_config.Lc0Config, num_categories: int = 12):
         super().__init__()
         self.embed = nn.Linear(
             config.model.embedding_size, config.model.value_embedding_size, bias=True

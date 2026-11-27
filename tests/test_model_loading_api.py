@@ -1,20 +1,20 @@
 from types import SimpleNamespace
 
-from chessnets.models.lc0 import AutoLc0Model
-from chessnets.models.lc0_senet.configuration_lc0_senet import (
-    LeelaNetConfig,
-    LeelaNetModelConfig,
-    LeelaPolicy,
-)
-from chessnets.models.maia2.configuration_maia2 import Config
 from chessnets.models.allie.configuration_allie import AllieConfig
+from chessnets.models.lc0 import AutoLc0Model
+from chessnets.models.lc0.configuration_lc0 import (
+    Lc0Config,
+    Lc0ModelConfig,
+    Lc0Policy,
+)
+from chessnets.models.maia2.configuration_maia2 import Maia2Config
 
 
 def test_auto_lc0_model_dispatches_from_config(monkeypatch):
-    config = SimpleNamespace(model=LeelaNetModelConfig(policy=LeelaPolicy.convolution))
+    config = SimpleNamespace(model=Lc0ModelConfig(policy=Lc0Policy.convolution))
     sentinel = object()
     monkeypatch.setattr(
-        "chessnets.models.lc0.SeLeelaZeroNet.from_config",
+        "chessnets.models.lc0.Lc0SeResNetModel.from_config",
         lambda received: sentinel,
     )
 
@@ -39,7 +39,7 @@ def test_model_configs_can_be_loaded_from_local_files(tmp_path):
           }
         }"""
     )
-    config = Config.from_pretrained(tmp_path)
+    config = Maia2Config.from_pretrained(tmp_path)
 
     assert config.input_channels == 18
     assert config.dim_vit == 32
@@ -50,10 +50,10 @@ def test_lc0_inference_config_can_be_loaded_without_training_fields(tmp_path):
     (tmp_path / "config.yaml").write_text(
         "model:\n  filters: 8\n  residual_blocks: 1\n  se_ratio: 2\n"
     )
-    config = LeelaNetConfig.from_pretrained(tmp_path)
+    config = Lc0Config.from_pretrained(tmp_path)
 
     assert config.model.filters == 8
-    assert config.model.policy is LeelaPolicy.convolution
+    assert config.model.policy is Lc0Policy.convolution
 
 
 def test_allie_config_preserves_nested_model_and_tokenizer_options():

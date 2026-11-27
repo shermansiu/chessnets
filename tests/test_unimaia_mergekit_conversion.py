@@ -64,7 +64,7 @@ def _write_source(tmp_path, *, policy_dtype=torch.bfloat16):
     lc0_config.write_text(
         json.dumps(
             {
-                "architectures": ["BTLeelaZeroNet"],
+                "architectures": ["Lc0ChessFormerModel"],
                 "config_schema_version": 1,
                 "model_type": "lc0",
                 "model": {"policy": "attention"},
@@ -117,7 +117,7 @@ def test_mergekit_normalization_reuses_shards_and_filters_policy_maps(tmp_path):
     config = UniMaiaConfig.from_json(output / "config.json")
     assert config.lc0_model_id == "local/lc0"
     assert config.lc0_config is not None
-    assert config.lc0_config["architectures"] == ["BTLeelaZeroNet"]
+    assert config.lc0_config["architectures"] == ["Lc0ChessFormerModel"]
     assert config.lc0_config_path is None
     assert config.tokenizer_path == "."
     assert config.llm_config_path == "text_model"

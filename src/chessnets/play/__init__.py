@@ -1,5 +1,6 @@
 """Utilities for running chessnets pipelines as live chess players."""
 
+from .adapters import PLAY_ADAPTERS, PipelineAdapterError, PipelinePlayAdapter
 from .config import (
     ChallengePolicy,
     LichessBotConfig,
@@ -14,7 +15,6 @@ from .metadata import (
     MetadataResolutionError,
     ResolvedMetadata,
 )
-from .adapters import PLAY_ADAPTERS, PipelineAdapterError, PipelinePlayAdapter
 
 _UCI_EXPORTS = {
     "PipelineUciEngine",

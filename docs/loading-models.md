@@ -47,8 +47,10 @@ A repository that is not registered by name still loads if its root
 }
 ```
 
-Supported architectures are `BTLeelaZeroNet`, `SeLeelaZeroNet`, `Maia2Model`,
-`UniMaiaModel`, and `CausalLMWithRegressionHead` (Allie).
+Supported architectures are `Lc0ChessFormerModel`, `Lc0SeResNetModel`,
+`Maia2Model`, `UniMaiaModel`, and `CausalLMWithRegressionHead` (Allie). Lc0
+checkpoints converted before ChessNets 0.2.0 name `BTLeelaZeroNet` or
+`SeLeelaZeroNet`, the earlier class names, and still load.
 
 ChessNets resolves a model as follows:
 
