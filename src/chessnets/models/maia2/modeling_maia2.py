@@ -6,9 +6,11 @@
 import logging
 import pathlib
 import typing as tp
+
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 from chessnets._optional import import_optional
 from chessnets.models.maia2.configuration_maia2 import Config
 from chessnets.models.maia2.utils import (
@@ -230,7 +232,7 @@ class Maia2Model(torch.nn.Module):
         boards: torch.Tensor,
         elos_self: torch.IntTensor,
         elos_oppo: torch.IntTensor,
-    ) -> tp.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         batch_size = boards.size(0)
         boards = boards.view(batch_size, self.cfg.input_channels, 8, 8)
         embs = self.chess_cnn(boards)

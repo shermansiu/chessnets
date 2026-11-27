@@ -119,7 +119,7 @@ def create_chessgpt_pipeline(
 
 
 PIPELINE_INFOS: dict[str, PipelineInfo] = {}
-ARCHITECTURE_INFOS: dict[str, "ArchitectureInfo"] = {}
+ARCHITECTURE_INFOS: dict[str, ArchitectureInfo] = {}
 
 
 def _resolve_device(device: tp.Any) -> tp.Any:

@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 import logging
+import typing as tp
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Self
-import typing as tp
 
 import chess
 import numpy as np

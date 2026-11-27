@@ -5,8 +5,8 @@ Original ChessNets implementation; see ``layers_lc0_senet`` for provenance.
 
 from __future__ import annotations
 
-from collections import OrderedDict
 import typing as tp
+from collections import OrderedDict
 
 import torch
 from torch import nn

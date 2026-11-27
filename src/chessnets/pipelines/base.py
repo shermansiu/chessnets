@@ -7,7 +7,6 @@ import collections.abc
 import dataclasses
 import typing as tp
 
-
 # These names are deliberately strings.  They are part of the public error
 # messages and are also useful when inspecting a pipeline from a notebook.
 PipelineInputName = str
@@ -180,7 +179,7 @@ class PipelineInputConfig:
         *,
         optional: tp.Iterable[str] = (),
         paired: tp.Iterable[tp.Iterable[str]] = (),
-    ) -> "PipelineInputConfig":
+    ) -> PipelineInputConfig:
         """Construct a contract from canonical public input names.
 
         The legacy boolean fields remain populated so old callers inspecting
@@ -304,7 +303,7 @@ class PipelineInputConfig:
         return normalized
 
 
-BatchSize = tp.Union[int, tp.Literal["auto"]]
+BatchSize = int | tp.Literal["auto"]
 """A batch size, or ``"auto"`` to find one that fits in memory."""
 
 

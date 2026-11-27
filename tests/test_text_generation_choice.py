@@ -6,7 +6,6 @@ import pytest
 
 from chessnets.pipelines.text_generation import pipeline_text_generation as text
 
-
 NUMBERED_REGEX = re.compile(text.NUMBERED_MOVE_REGEX)
 PGN_CONTINUATION_REGEX = re.compile(text.PGN_CONTINUATION_MOVE_REGEX)
 

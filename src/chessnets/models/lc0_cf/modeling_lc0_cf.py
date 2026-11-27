@@ -5,8 +5,8 @@ checkpoints to ONNX, inspecting the graph, and validating outputs numerically
 against ONNX Runtime. No lczero-training source code is included.
 """
 
-from collections import OrderedDict
 import typing as tp
+from collections import OrderedDict
 
 import attrs
 import torch

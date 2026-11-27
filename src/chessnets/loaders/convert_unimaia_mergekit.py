@@ -25,7 +25,6 @@ from safetensors import safe_open
 from chessnets.models.lc0_senet.configuration_lc0_senet import LeelaInferenceConfig
 from chessnets.models.unimaia.configuration_unimaia import UniMaiaConfig
 
-
 POLICY_MAP_KEYS = frozenset(
     f"{head}.attention_policy_map.idx"
     for head in (

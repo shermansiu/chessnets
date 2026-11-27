@@ -1,7 +1,7 @@
 import json
 
-from chessnets.loaders.convert_lc0 import convert_checkpoint
 from chessnets.loaders import load_lc0_model
+from chessnets.loaders.convert_lc0 import convert_checkpoint
 from chessnets.models.lc0_senet.configuration_lc0_senet import (
     LeelaInferenceConfig,
     LeelaNetModelConfig,

@@ -9,6 +9,7 @@ import pathlib
 import typing as tp
 
 import torch
+
 from chessnets.loaders.safetensors import (
     build_with_state_dict,
     load_safetensors_file,

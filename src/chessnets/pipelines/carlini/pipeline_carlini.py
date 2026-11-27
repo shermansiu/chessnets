@@ -21,17 +21,17 @@ import chess
 import torch
 import torch.utils.data
 
+from chessnets._optional import optional_module
 from chessnets.utils import board_history
 
-from chessnets._optional import optional_module
 from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
 from ..outputs import ChessMovePrediction, ChessMovePredictionDataset
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     asyncio_run,
     iter_dataset_batches,
+    progress,
     resolve_num_workers,
 )
 
@@ -62,7 +62,7 @@ def _pgn_movetext(history: board_history.BoardHistory, warn_on_game_over: bool) 
         logging.info("Game is over; no moves valid")
         error_message = f"Game is over; no moves valid. FEN: {board.fen()}  PGN: {pgn}"
         if warn_on_game_over:
-            warnings.warn(error_message)
+            warnings.warn(error_message, stacklevel=2)
         else:
             raise ValueError(error_message)
         pgn = pgn.rsplit(" ", 1)[0].strip()
@@ -885,7 +885,8 @@ class AsyncCarliniOpenAIInstructChessPipeline(CarliniOpenAIInstructChessPipeline
                 out = self.cache.get(board.fen())
                 if out is None:
                     warnings.warn(
-                        f"Obtained invalid move when looking up seen FEN within the same batch. FEN={board.fen()}"
+                        f"Obtained invalid move when looking up seen FEN within the same batch. FEN={board.fen()}",
+                        stacklevel=2,
                     )
                 batch_outputs[i] = out
 

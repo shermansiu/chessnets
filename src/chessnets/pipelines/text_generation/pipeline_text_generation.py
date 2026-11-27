@@ -17,6 +17,8 @@ import torch
 import torch.utils.data
 
 from chessnets._optional import import_optional, optional_module
+from chessnets.utils import board_history
+
 from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
 from ..outputs import (
     ChessMove,
@@ -25,14 +27,13 @@ from ..outputs import (
     LLMChessMovePrediction,
 )
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     asyncio_run,
     iter_dataset_batches,
+    progress,
     resolve_num_workers,
 )
-from chessnets.utils import board_history
 
 jinja2 = optional_module("jinja2", "text-generation")
 openai = optional_module("openai", "text-generation")

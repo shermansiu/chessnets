@@ -124,3 +124,17 @@ source-exclude = ["plugins/**"]
 
 [tool.ruff]
 target-version = "py311"
+
+[tool.ruff.lint]
+# pycodestyle, Pyflakes, import sorting, pyupgrade and bugbear.
+select = ["E4", "E7", "E9", "F", "W", "I", "UP", "B"]
+ignore = [
+    # zip(strict=True) would turn silent truncation into errors in code paths
+    # that rely on equal lengths being checked elsewhere; adopt per call site.
+    "B905",
+    # Deprecated in ruff: isinstance with X | Y is slower than with a tuple.
+    "UP038",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["chessnets", "chessnets_lc0_protobuf"]

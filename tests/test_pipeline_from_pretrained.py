@@ -4,8 +4,8 @@ from chessnets.pipelines.carlini.pipeline_carlini import (
     CarliniOpenAIInstructChessPipeline,
 )
 from chessnets.pipelines.lc0.pipeline_lc0 import Lc0Pipeline
-from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Pipeline
 from chessnets.pipelines.maia2 import pipeline_maia2
+from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Pipeline
 from chessnets.pipelines.text_generation.pipeline_text_generation import (
     HFTransformersProbabilityTextPipeline,
     OpenAIProbabilityTextPipeline,

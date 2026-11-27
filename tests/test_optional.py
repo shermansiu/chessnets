@@ -30,4 +30,4 @@ def test_optional_module_defers_import_until_attribute_access():
     module = optional_module("chessnets_missing_optional_pkg", "demo")
 
     with pytest.raises(ImportError, match=r"install chessnets\[demo\]"):
-        module.anything
+        module.anything  # noqa: B018 -- the attribute access is the test

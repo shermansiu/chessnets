@@ -57,14 +57,14 @@ class UciPosition:
     move_seconds: list[int] = dataclasses.field(default_factory=list)
 
     @classmethod
-    def startpos(cls, moves: tp.Iterable[str] = ()) -> "UciPosition":
+    def startpos(cls, moves: tp.Iterable[str] = ()) -> UciPosition:
         board = chess.Board()
         result = cls(board=board, initial_fen="startpos")
         result._push_moves(moves)
         return result
 
     @classmethod
-    def from_fen(cls, fen: str, moves: tp.Iterable[str] = ()) -> "UciPosition":
+    def from_fen(cls, fen: str, moves: tp.Iterable[str] = ()) -> UciPosition:
         try:
             board = chess.Board(fen)
         except ValueError as exc:
@@ -73,7 +73,7 @@ class UciPosition:
         result._push_moves(moves)
         return result
 
-    def copy(self) -> "UciPosition":
+    def copy(self) -> UciPosition:
         return dataclasses.replace(
             self,
             board=self.board.copy(stack=False),
@@ -238,7 +238,7 @@ class PipelineUciEngine:
         config: UciEngineConfig,
         *,
         pipeline: tp.Any = None,
-    ) -> "PipelineUciEngine":
+    ) -> PipelineUciEngine:
         if pipeline is None:
             from ..pipelines.auto_pipeline import AutoPipeline
 

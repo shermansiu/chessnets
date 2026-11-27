@@ -8,7 +8,6 @@ from chessnets.loaders.convert_maia2 import convert_maia2_checkpoint
 from chessnets.models.maia2.configuration_maia2 import Config
 from chessnets.models.maia2.modeling_maia2 import Maia2Model
 
-
 TRAINING_CONFIG = """\
 dim_cnn: 2
 dim_vit: 16

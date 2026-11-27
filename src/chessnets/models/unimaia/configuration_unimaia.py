@@ -92,7 +92,7 @@ class UniMaiaConfig:
     lc0_config: dict[str, tp.Any] | None = None
 
     @classmethod
-    def from_dict(cls, values: dict[str, tp.Any]) -> "UniMaiaConfig":
+    def from_dict(cls, values: dict[str, tp.Any]) -> UniMaiaConfig:
         """Build a config while ignoring legacy training-only keys."""
         if not isinstance(values, dict):
             raise TypeError(f"Expected a mapping, got {type(values).__name__}")
@@ -159,13 +159,13 @@ class UniMaiaConfig:
         return config
 
     @classmethod
-    def from_yaml(cls, path: str | pathlib.Path) -> "UniMaiaConfig":
+    def from_yaml(cls, path: str | pathlib.Path) -> UniMaiaConfig:
         with pathlib.Path(path).open(encoding="utf-8") as stream:
             values = yaml.safe_load(stream) or {}
         return cls.from_dict(values)
 
     @classmethod
-    def from_json(cls, path: str | pathlib.Path) -> "UniMaiaConfig":
+    def from_json(cls, path: str | pathlib.Path) -> UniMaiaConfig:
         with pathlib.Path(path).open(encoding="utf-8") as stream:
             return cls.from_dict(json.load(stream))
 

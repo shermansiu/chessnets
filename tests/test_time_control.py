@@ -3,9 +3,9 @@ from dataclasses import dataclass
 import pytest
 
 from chessnets.utils.time_control import (
+    TimeInfoPromptStyle,
     append_basic_time_info_to_prompt,
     parse_time_control,
-    TimeInfoPromptStyle,
 )
 
 

@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from chessnets.models.allie.configuration_allie import AllieConfig
 from chessnets.models.lc0 import AutoLc0Model
 from chessnets.models.lc0_senet.configuration_lc0_senet import (
     LeelaNetConfig,
@@ -7,7 +8,6 @@ from chessnets.models.lc0_senet.configuration_lc0_senet import (
     LeelaPolicy,
 )
 from chessnets.models.maia2.configuration_maia2 import Config
-from chessnets.models.allie.configuration_allie import AllieConfig
 
 
 def test_auto_lc0_model_dispatches_from_config(monkeypatch):

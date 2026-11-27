@@ -2,12 +2,14 @@ import copy
 import dataclasses
 import io
 import typing as tp
+
 import attrs
 import chess
 import chess.pgn
 import numpy as np
-from chessnets.utils import decode_policy
+
 from chessnets.models.maia2 import utils as maia2_utils
+from chessnets.utils import decode_policy
 
 
 def bitboards_to_array_display(bb: np.ndarray) -> np.ndarray:

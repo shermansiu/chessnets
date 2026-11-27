@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import functools
 import typing as tp
+
 import attrs
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 from chessnets.models import lc0_policy_map
 from chessnets.models.lc0_senet import configuration_lc0_senet as leela_config
 

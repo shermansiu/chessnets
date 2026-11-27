@@ -1,8 +1,8 @@
 """UniMaia model components."""
 
-from collections import OrderedDict
 import logging
 import typing as tp
+from collections import OrderedDict
 
 import torch
 from torch import nn
@@ -72,7 +72,7 @@ class UniMaiaModel(BTLeelaZeroNet):
 
         self.vlm_architecture_type = umt_config.vlm_architecture_type
 
-        MHAClass: tp.Type[nn.Module]
+        MHAClass: type[nn.Module]
         if umt_config.should_use_gated_attention:
             MHAClass = layers.GatedMultiheadAttention
         else:

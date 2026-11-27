@@ -5,8 +5,8 @@ import torch
 
 from chessnets.models.maia2 import utils as maia2_utils
 from chessnets.pipelines.carlini.pipeline_carlini import (
-    CarliniOpenAIInstructChessPipeline,
     CarliniOpenAIInstructChessDataset,
+    CarliniOpenAIInstructChessPipeline,
 )
 from chessnets.pipelines.chess_clip.pipeline_chess_clip import ChessClipDataset
 from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Dataset, Maia2Pipeline
@@ -14,7 +14,6 @@ from chessnets.pipelines.text_generation.pipeline_text_generation import (
     DEFAULT_OUTLINES_PROMPT_TEMPLATE,
     OutlinesProbabilityTextPipeline,
 )
-
 
 PGN = "1. e4 e5 2. Nf3 *"
 

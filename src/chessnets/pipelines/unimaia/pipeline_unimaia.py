@@ -27,10 +27,10 @@ from ..outputs import (
     ChessMovePredictionDataset,
 )
 from ..pipeline_utils import (
-    progress,
     DEFAULT_PARALLEL_THRESHOLD,
     adaptive_process_map,
     iter_dataset_batches,
+    progress,
     resolve_num_workers,
 )
 
