@@ -14,6 +14,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   of memory, and keeps the size that fits; `last_batch_size` records it.
 - `TextGenerationPipeline`, configured by `TextGenerationPipelineConfig`
   (`prompt_format` and `constraint`), for any causal language model.
+- `SECURITY.md`, which says how to report vulnerabilities privately and what
+  ChessNets trusts when it loads checkpoints and plugins.
 
 ### Changed
 
