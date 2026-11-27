@@ -822,7 +822,7 @@ class FiLMModifiedResNet(nn.Module):
 
     @torch.jit.ignore
     def set_grad_checkpointing(self, enable=True):
-        # FIXME support for non-transformer
+        # Not supported for this ResNet tower, as in OpenCLIP's ModifiedResNet.
         pass
 
     def stem(self, x):
