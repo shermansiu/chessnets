@@ -1,7 +1,8 @@
 """Pin what each text-generation profile sends to the model.
 
 ``data/text_generation_profiles.json`` was recorded from the pipeline classes
-before they were merged into ``TextGenerationPipeline`` (ChessNets 0.1.1). Published benchmark results depend on these prompts, so any
+before they were merged into ``TextGenerationPipeline`` and ``CarliniPipeline``
+(ChessNets 0.1.1). Published benchmark results depend on these prompts, so any
 difference is a behavior change, not a refactor. Regenerate the file only for
 a deliberate prompt change, and record it in the changelog.
 """
@@ -16,6 +17,7 @@ import pytest
 import torch
 
 from chessnets.pipelines.auto_pipeline import AutoPipeline
+from chessnets.pipelines.carlini import pipeline_carlini as carlini
 from chessnets.pipelines.text_generation import pipeline_text_generation as text
 
 EXPECTED = json.loads(
@@ -172,6 +174,37 @@ def test_profile_sends_the_recorded_prompts(calls, name, choice):
     observed["predict_calls"] = list(calls)
 
     assert observed == EXPECTED[name + ("+choice" if choice else "")]
+
+
+@pytest.mark.parametrize("mode", ["default", "prompt", "time_control_and_elo"])
+def test_carlini_mode_sends_the_recorded_prompts(tmp_path, mode):
+    class Client:
+        def __init__(self, **kwargs):
+            pass
+
+    pipeline = carlini.CarliniPipeline(
+        model_id="x",
+        client_factory=Client,
+        cache_path_template=str(tmp_path / "{model_id}.json"),
+        pipeline_config=carlini.CarliniPipelineConfig(input_mode=mode),
+    )
+    prompts = []
+    pipeline.forward = lambda prompt, num_tokens: prompts.append(prompt) or " e4"
+    inputs = {
+        "default": {},
+        "prompt": {"prompts": ["P1", "P2"]},
+        "time_control_and_elo": {
+            "time_controls": ["300+0", "600+5"],
+            "white_elos": [1500, 2000],
+            "black_elos": [1400, 2100],
+        },
+    }[mode]
+
+    pipeline.make_prediction(PGNS, **inputs)
+
+    expected = EXPECTED[f"carlini-{mode}"]
+    assert prompts == expected["prompts"]
+    assert sorted(pipeline.input_config.required_inputs) == expected["required"]
 
 
 def test_positional_inputs_follow_the_format_order(calls):

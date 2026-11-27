@@ -45,6 +45,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `TransformersProbabilityPipeline`, `OutlinesProbabilityPipeline` and
     `(Async)OpenAIProbabilityPipeline`.
   - The text-generation dataset classes are private.
+  - The Carlini pipelines are `CarliniPipeline` and `AsyncCarliniPipeline`,
+    with the variant chosen by `CarliniPipelineConfig(input_mode=...)`;
+    `num_tokens` is keyword-only, and the dataset classes are private.
 
 ## [0.1.1] - 2026-11-23
 

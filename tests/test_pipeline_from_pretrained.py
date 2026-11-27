@@ -1,7 +1,7 @@
 import torch
 
 from chessnets.pipelines.carlini.pipeline_carlini import (
-    CarliniOpenAIInstructChessPipeline,
+    CarliniPipeline,
 )
 from chessnets.pipelines.lc0.pipeline_lc0 import Lc0Pipeline
 from chessnets.pipelines.maia2 import pipeline_maia2
@@ -84,10 +84,10 @@ def test_model_id_pipeline_loaders_construct_the_requested_subclass():
     openai_pipeline = StubOpenAIPipeline.from_pretrained("gpt-test")
     assert openai_pipeline.model_id == "gpt-test"
 
-    class CarliniPipeline(CarliniOpenAIInstructChessPipeline):
+    class StubCarliniPipeline(CarliniPipeline):
         def __init__(self, model_id, **kwargs):
             self.model_id = model_id
             self.kwargs = kwargs
 
-    carlini_pipeline = CarliniPipeline.from_pretrained("text-test")
+    carlini_pipeline = StubCarliniPipeline.from_pretrained("text-test")
     assert carlini_pipeline.model_id == "text-test"

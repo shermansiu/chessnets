@@ -5,8 +5,8 @@ import torch
 
 from chessnets.models.maia2 import utils as maia2_utils
 from chessnets.pipelines.carlini.pipeline_carlini import (
-    CarliniOpenAIInstructChessDataset,
-    CarliniOpenAIInstructChessPipeline,
+    CarliniPipeline,
+    _CarliniDataset,
 )
 from chessnets.pipelines.chess_clip.pipeline_chess_clip import ChessCLIPDataset
 from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Dataset, Maia2Pipeline
@@ -99,7 +99,7 @@ def test_text_generation_failure_branch_keeps_one_row_per_input():
     assert predictions.predictions[0].raw_response is None
 
 
-class _FakeCarlini(CarliniOpenAIInstructChessPipeline):
+class _FakeCarlini(CarliniPipeline):
     def forward(self, prompt, num_tokens):
         return "e4"
 
@@ -120,6 +120,6 @@ def test_carlini_small_prediction_uses_local_preparation(tmp_path: Path):
 
 
 def test_carlini_dataset_accepts_empty_input_without_workers():
-    dataset = CarliniOpenAIInstructChessDataset([], num_workers=0)
+    dataset = _CarliniDataset([], num_workers=0)
 
     assert len(dataset) == 0
