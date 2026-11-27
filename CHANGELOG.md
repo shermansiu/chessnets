@@ -52,6 +52,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the tokenizer's chat template itself, and no longer installs `jinja2` or
   `packaging`. The fallback for older Outlines, which rendered the template
   with an extra system message and so sent different prompts, is gone.
+- Allie checkpoints load with `weights_only=True` on every PyTorch version.
 
 ## [0.1.1] - 2026-11-23
 
