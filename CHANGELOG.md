@@ -16,6 +16,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`prompt_format` and `constraint`), for any causal language model.
 - `SECURITY.md`, which says how to report vulnerabilities privately and what
   ChessNets trusts when it loads checkpoints and plugins.
+- `py.typed`, so type checkers use ChessNets' annotations.
 
 ### Changed
 

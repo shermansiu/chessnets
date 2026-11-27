@@ -35,6 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Games/Entertainment :: Board Games",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 license-files = ["LICENSE", "LICENSES/*", "THIRD_PARTY_NOTICES.md"]
 
