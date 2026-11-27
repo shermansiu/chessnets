@@ -48,6 +48,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - The Carlini pipelines are `CarliniPipeline` and `AsyncCarliniPipeline`,
     with the variant chosen by `CarliniPipelineConfig(input_mode=...)`;
     `num_tokens` is keyword-only, and the dataset classes are private.
+- The `text-generation` extra requires Outlines 1.2.10 or later, which applies
+  the tokenizer's chat template itself, and no longer installs `jinja2` or
+  `packaging`. The fallback for older Outlines, which rendered the template
+  with an extra system message and so sent different prompts, is gone.
 
 ## [0.1.1] - 2026-11-23
 

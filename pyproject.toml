@@ -70,10 +70,10 @@ maia2 = [
 
 # Text-generation pipelines (ChessGPT, Carlini, and OpenAI-compatible endpoints)
 text-generation = [
-    "jinja2",
     "openai",
-    "outlines",
-    "packaging",
+    # 1.2.10 applies the tokenizer's chat template to string prompts, which
+    # the ChessGPT prompt formats rely on.
+    "outlines>=1.2.10",
     "transformers",
 ]
 

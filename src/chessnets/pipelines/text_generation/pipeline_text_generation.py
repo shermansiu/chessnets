@@ -11,7 +11,6 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import enum
-import importlib.metadata
 import json
 import logging
 import random
@@ -24,7 +23,7 @@ import dacite
 import torch
 import torch.utils.data
 
-from chessnets._optional import import_optional, optional_module
+from chessnets._optional import optional_module
 from chessnets.utils import board_history
 
 from ..base import (
@@ -48,10 +47,8 @@ from ..pipeline_utils import (
     resolve_num_workers,
 )
 
-jinja2 = optional_module("jinja2", "text-generation")
 openai = optional_module("openai", "text-generation")
 outlines = optional_module("outlines", "text-generation")
-packaging_version = optional_module("packaging.version", "text-generation")
 transformers = optional_module("transformers", "text-generation")
 IPython = types.SimpleNamespace(display=optional_module("IPython.display", "notebook"))
 
@@ -962,15 +959,21 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
     and is faster. :class:`TextGenerationPipelineConfig` selects the prompt
     format and how generation is constrained.
 
-    TODO (s8siu): Maybe refactor code to just use outlines.type.Chat?
-    Note: When using outlines < 1.2.10 and the tokenizer's chat template has not been set, the following call returns ['1. e4'] instead of ['2. c3'] as expected, and a lot of other weird outputs.
-        Issue: https://github.com/dottxt-ai/outlines/issues/1784
-        PR: https://github.com/dottxt-ai/outlines/pull/1789
+    Outlines 1.2.10 and later wrap each prompt in the tokenizer's chat
+    template as one user message, with no system message. The
+    TextPromptFormat.CHAT template already starts with ChessGPT's system
+    text and Human 0:, so the model sees::
 
-        >>> pipeline.generator.batch(['A friendly, helpful chat between some humans. Human 0: In the Sicilian Defense: Alapin Variation, the player as White takes a strategic approach by challenging Black’s setup early with 1. e4 c5, thus steering the game into less trodden paths and potentially catching their opponent off-guard.\n\nPGN: 1. e4 c5\n\nJust write your move.'])
-        ['2. c3']
+        Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: {prompt}
 
-        Honestly, the actual prompt might be prompt_template(prompt_template(prompt, add_generation_prompt=False), add_generation_prompt=True), but it seems to work better than just applying the template once
+        PGN: {pgn}
+
+        Just write your move.<|endoftext|>Human 1:
+
+    TextPromptFormat.CHAT_ORIGINAL holds only the user's message, so its
+    prompt has no system text. Before Outlines 1.2.10, ChessNets rendered the
+    chat template itself with the system message, which put it in each
+    format's prompt once more.
     """
 
     def __init__(
@@ -998,22 +1001,6 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             prompt_template = pipeline_config.default_prompt_template
         if chat_template is _FORMAT_DEFAULT:
             chat_template = pipeline_config.default_chat_template
-        # Import first so a missing extra reports how to install it.
-        import_optional("outlines", "text-generation")
-        outlines_version = importlib.metadata.version("outlines")
-        if chat_template is not None and packaging_version.parse(
-            outlines_version
-        ) < packaging_version.parse("1.2.10"):
-            prompt_template = jinja2.Template(chat_template).render(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "A friendly, helpful chat between some humans.",
-                    },
-                    {"role": "user", "content": prompt_template},
-                ],
-                add_generation_prompt=True,
-            )
         super().__init__(
             model_id=model_id,
             device=device,
