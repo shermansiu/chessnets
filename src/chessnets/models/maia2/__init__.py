@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import typing as tp
 
-from .configuration_maia2 import Config
+from .configuration_maia2 import Maia2Config
 
-__all__ = ["Config", "Maia2Model"]
+__all__ = ["Maia2Config", "Maia2Model"]
 
 
 def __getattr__(name: str) -> tp.Any:

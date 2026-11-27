@@ -7,7 +7,7 @@ from chessnets.models.lc0.configuration_lc0 import (
     Lc0ModelConfig,
     Lc0Policy,
 )
-from chessnets.models.maia2.configuration_maia2 import Config
+from chessnets.models.maia2.configuration_maia2 import Maia2Config
 
 
 def test_auto_lc0_model_dispatches_from_config(monkeypatch):
@@ -39,7 +39,7 @@ def test_model_configs_can_be_loaded_from_local_files(tmp_path):
           }
         }"""
     )
-    config = Config.from_pretrained(tmp_path)
+    config = Maia2Config.from_pretrained(tmp_path)
 
     assert config.input_channels == 18
     assert config.dim_vit == 32

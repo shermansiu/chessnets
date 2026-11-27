@@ -5,7 +5,7 @@ import torch
 from safetensors.torch import load_file, save_file
 
 from chessnets.loaders.convert_maia2 import convert_maia2_checkpoint
-from chessnets.models.maia2.configuration_maia2 import Config
+from chessnets.models.maia2.configuration_maia2 import Maia2Config
 from chessnets.models.maia2.modeling_maia2 import Maia2Model
 
 TRAINING_CONFIG = """\
@@ -26,7 +26,7 @@ data_root: /not/a/runtime/path
 def _write_source(tmp_path):
     yaml_path = tmp_path / "config.yaml"
     yaml_path.write_text(TRAINING_CONFIG, encoding="utf-8")
-    config = Config.from_yaml(yaml_path)
+    config = Maia2Config.from_yaml(yaml_path)
     model = Maia2Model.from_config(config)
     state = {f"module.{key}": value for key, value in model.state_dict().items()}
     checkpoint = tmp_path / "blitz_model.pt"
@@ -78,7 +78,7 @@ def test_maia2_loader_prefers_safetensors_and_validates_time_control(tmp_path):
 
 def test_maia2_legacy_model_pt_fallback_is_explicitly_safe(tmp_path):
     checkpoint, yaml_path, original = _write_source(tmp_path)
-    config = Config.from_yaml(yaml_path)
+    config = Maia2Config.from_yaml(yaml_path)
     config.time_control = "blitz"
     config.save_pretrained(tmp_path)
     checkpoint.rename(tmp_path / "model.pt")

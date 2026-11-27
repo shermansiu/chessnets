@@ -11,7 +11,7 @@ import typing as tp
 import torch
 from safetensors.torch import load_file, save_file
 
-from chessnets.models.maia2.configuration_maia2 import Config
+from chessnets.models.maia2.configuration_maia2 import Maia2Config
 
 
 def _sha256(path: pathlib.Path) -> str:
@@ -57,7 +57,7 @@ def _assert_identical(
 
 
 def _assert_outputs_identical(
-    config: Config,
+    config: Maia2Config,
     expected: dict[str, torch.Tensor],
     actual: dict[str, torch.Tensor],
 ) -> None:
@@ -101,10 +101,10 @@ def convert_maia2_checkpoint(
     if not config_path.is_file():
         raise FileNotFoundError(config_path)
 
-    legacy_config = Config.from_yaml(config_path)
+    legacy_config = Maia2Config.from_yaml(config_path)
     values = legacy_config.to_dict()
     values["time_control"] = time_control
-    config = Config.from_dict(values)
+    config = Maia2Config.from_dict(values)
     checkpoint_hash = _sha256(checkpoint_path)
     training_config_hash = _sha256(config_path)
     report: dict[str, tp.Any] = {

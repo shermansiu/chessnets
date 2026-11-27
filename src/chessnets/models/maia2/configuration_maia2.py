@@ -14,7 +14,7 @@ import typing as tp
 import yaml
 
 
-class Config:
+class Maia2Config:
     """A small, validated Maia 2 inference configuration."""
 
     model_type = "maia2"
@@ -41,7 +41,7 @@ class Config:
             setattr(self, key, value)
 
     @classmethod
-    def from_dict(cls, values: dict[str, tp.Any]) -> Config:
+    def from_dict(cls, values: dict[str, tp.Any]) -> Maia2Config:
         if not isinstance(values, dict):
             raise TypeError("Maia 2 config must be a mapping")
         config = cls(values)
@@ -63,12 +63,12 @@ class Config:
         return config
 
     @classmethod
-    def from_json(cls, path: str | pathlib.Path) -> Config:
+    def from_json(cls, path: str | pathlib.Path) -> Maia2Config:
         values = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
         return cls.from_dict(values)
 
     @classmethod
-    def from_yaml(cls, path: str | pathlib.Path) -> Config:
+    def from_yaml(cls, path: str | pathlib.Path) -> Maia2Config:
         """Load an upstream training config for migration only."""
         with pathlib.Path(path).open(encoding="utf-8") as stream:
             return cls.from_dict(yaml.safe_load(stream) or {})
@@ -106,7 +106,7 @@ class Config:
         cache_dir: str | pathlib.Path | None = None,
         token: str | bool | None = None,
         local_files_only: bool = False,
-    ) -> Config:
+    ) -> Maia2Config:
         from chessnets.models._pretrained import resolve_pretrained_file
 
         return cls.from_json(
@@ -122,7 +122,7 @@ class Config:
 
 
 def parse_args(cfg_file_path):
-    return Config.from_yaml(cfg_file_path)
+    return Maia2Config.from_yaml(cfg_file_path)
 
 
-__all__ = ["Config", "parse_args"]
+__all__ = ["Maia2Config", "parse_args"]

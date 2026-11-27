@@ -12,7 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from chessnets._optional import import_optional
-from chessnets.models.maia2.configuration_maia2 import Config
+from chessnets.models.maia2.configuration_maia2 import Maia2Config
 from chessnets.models.maia2.utils import (
     create_elo_dict,
     get_all_possible_moves,
@@ -52,7 +52,7 @@ class BasicBlock(torch.nn.Module):
 
 
 class ChessResNet(torch.nn.Module):
-    def __init__(self, block: nn.Module, cfg: Config):
+    def __init__(self, block: nn.Module, cfg: Maia2Config):
         super().__init__()
 
         self.conv1 = torch.nn.Conv2d(
@@ -192,7 +192,7 @@ class Transformer(nn.Module):
 
 
 class Maia2Model(torch.nn.Module):
-    def __init__(self, output_dim: int, elo_dict: dict[str, int], cfg: Config):
+    def __init__(self, output_dim: int, elo_dict: dict[str, int], cfg: Maia2Config):
         super().__init__()
 
         self.cfg = cfg
@@ -267,7 +267,7 @@ class Maia2Model(torch.nn.Module):
     @classmethod
     def from_config(
         cls,
-        config: Config,
+        config: Maia2Config,
         *,
         output_dim: int | None = None,
         elo_dict: dict[str, int] | None = None,
@@ -326,7 +326,9 @@ class Maia2Model(torch.nn.Module):
             token=token,
             local_files_only=local_files_only,
         )
-        config = Config.from_pretrained(pretrained_model_name_or_path, **resolve_kwargs)
+        config = Maia2Config.from_pretrained(
+            pretrained_model_name_or_path, **resolve_kwargs
+        )
         configured_time_control = getattr(config, "time_control", None)
         if time_control is not None and configured_time_control != time_control:
             raise ValueError(
