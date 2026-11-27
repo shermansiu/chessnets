@@ -62,6 +62,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The `text-generation` extra requires Outlines 1.2.9 or later and no longer
   installs `packaging`.
 - Allie checkpoints load with `weights_only=True` on every PyTorch version.
+- `constraint="choice"` converts the tokenizer's vocabulary for Outlines once
+  per pipeline instead of once per position, which made each position several
+  times slower; its outputs are unchanged. It still generates one position at a
+  time, which is now documented: a `batch_size` above 1 warns once, and
+  `batch_size="auto"` uses 1.
 - When a text-generation or Carlini model's output can't be used, the legal
   move picked in its place is now the same in every run, and so is the move
   order that `should_shuffle_legal_moves=True` puts in the prompt. Both are
