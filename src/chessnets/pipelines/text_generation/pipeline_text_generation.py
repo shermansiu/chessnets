@@ -16,6 +16,7 @@ import logging
 import textwrap
 import types
 import typing as tp
+import warnings
 
 import chess
 import dacite
@@ -939,8 +940,10 @@ class TextGenerationPipelineConfig:
     """Options for :class:`TextGenerationPipeline`.
 
     ``constraint="regex"`` constrains generation to the format's move pattern;
-    ``"choice"`` restricts it to the legal moves in each position, one
-    generation call per position.
+    ``"choice"`` restricts it to the legal moves in each position. Outlines
+    applies one constraint to a whole batch, so ``"choice"`` generates one
+    position at a time and ignores ``batch_size`` beyond preparing prompts
+    (``batch_size="auto"`` uses 1).
     """
 
     prompt_format: TextPromptFormat = TextPromptFormat.CHAT
@@ -1042,6 +1045,10 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             )
         # get_generator_for_model, called by the base class, reads the config.
         self.pipeline_config = pipeline_config
+        if pipeline_config.constraint == "choice":
+            # Generation runs one position at a time, so larger batches only
+            # prepare more prompts together.
+            self.auto_batch_sizes = {"cpu": 1, "cuda": 1}
         if prompt_template is None:
             prompt_template = pipeline_config.default_prompt_template
         if chat_template is _FORMAT_DEFAULT:
@@ -1098,12 +1105,39 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
 
         results = []
         for prompt, history, moves in zip(consolidated_prompts, histories, legal_moves):
-            generator = outlines.Generator(
-                self.model,
-                outlines.types.Choice(self.legal_move_choices(history, moves)),
-            )
+            generator = self._choice_generator(self.legal_move_choices(history, moves))
             results.append(generator(prompt, temperature=self.temperature))
         return results
+
+    def _choice_generator(self, choices: list[str]):
+        """Return a generator restricted to ``choices``.
+
+        This builds the same logits processor as
+        ``outlines.Generator(model, Choice(choices))``, but reuses one
+        Outlines Core backend, so the tokenizer's vocabulary is converted once
+        per pipeline instead of once per position.
+        """
+        backend = getattr(self, "_choice_backend", None)
+        if backend is None:
+            backend = outlines.backends.OutlinesCoreBackend(self.model)
+            self._choice_backend = backend
+        regex = outlines.types.dsl.to_regex(outlines.types.Choice(choices))
+        return outlines.Generator(
+            self.model, processor=backend.get_regex_logits_processor(regex)
+        )
+
+    def _warn_choice_batch_size(self, batch_size: int) -> None:
+        if batch_size == 1 or getattr(self, "_warned_choice_batch_size", False):
+            return
+        self._warned_choice_batch_size = True
+        warnings.warn(
+            'constraint="choice" generates one position at a time, because '
+            "Outlines can't constrain each row of a batch to different moves; "
+            f"batch_size={batch_size} only sets how many prompts are prepared "
+            "together. Pass batch_size=1 to silence this warning.",
+            UserWarning,
+            stacklevel=3,
+        )
 
     def make_prediction(
         self,
@@ -1131,6 +1165,8 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
         """
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
+        if self.constraint == "choice":
+            self._warn_choice_batch_size(batch_size)
         values = bind_positional_inputs(
             self.pipeline_config.input_names,
             inputs,

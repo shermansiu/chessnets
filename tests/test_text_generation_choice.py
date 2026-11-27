@@ -1,5 +1,6 @@
 import re
 import types
+import warnings
 
 import chess
 import pytest
@@ -59,17 +60,22 @@ def test_pgn_header_choices_use_ellipsis_for_black():
     assert choices == ["e5", " e5", "1... e5", " 1... e5"]
 
 
-def test_choice_forward_builds_one_generator_per_position(monkeypatch):
-    generated = []
-
+def _install_choice_fakes(monkeypatch, generated, backends):
     class Choice:
         def __init__(self, items):
             self.items = items
 
-    def generator(model, output_type):
+    class Backend:
+        def __init__(self, model):
+            backends.append(model)
+
+        def get_regex_logits_processor(self, regex):
+            return regex
+
+    def generator(model, *, processor):
         def generate(prompt, **kwargs):
-            generated.append((model, output_type.items, prompt, kwargs))
-            return output_type.items[0]
+            generated.append((model, processor, prompt, kwargs))
+            return processor[0]
 
         return generate
 
@@ -78,9 +84,19 @@ def test_choice_forward_builds_one_generator_per_position(monkeypatch):
         "outlines",
         types.SimpleNamespace(
             Generator=generator,
-            types=types.SimpleNamespace(Choice=Choice),
+            backends=types.SimpleNamespace(OutlinesCoreBackend=Backend),
+            types=types.SimpleNamespace(
+                Choice=Choice,
+                dsl=types.SimpleNamespace(to_regex=lambda term: term.items),
+            ),
         ),
     )
+
+
+def test_choice_forward_builds_one_generator_per_position(monkeypatch):
+    generated = []
+    backends = []
+    _install_choice_fakes(monkeypatch, generated, backends)
     pipeline = object.__new__(text.TextGenerationPipeline)
     pipeline.pipeline_config = text.TextGenerationPipelineConfig(
         prompt_format="pgn_header", constraint="choice"
@@ -101,6 +117,8 @@ def test_choice_forward_builds_one_generator_per_position(monkeypatch):
     )
 
     assert results == ["e4", "e5"]
+    # The vocabulary is converted once, not once per position.
+    assert backends == ["model"]
     assert generated == [
         (
             "model",
@@ -115,6 +133,17 @@ def test_choice_forward_builds_one_generator_per_position(monkeypatch):
             {"temperature": 0.25},
         ),
     ]
+
+
+def test_choice_warns_once_that_batch_size_is_not_used():
+    pipeline = object.__new__(text.TextGenerationPipeline)
+
+    with pytest.warns(UserWarning, match="one position at a time"):
+        pipeline._warn_choice_batch_size(16)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        pipeline._warn_choice_batch_size(16)
+        object.__new__(text.TextGenerationPipeline)._warn_choice_batch_size(1)
 
 
 def test_pipeline_rejects_unknown_constraint_before_model_loading():
