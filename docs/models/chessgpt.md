@@ -22,6 +22,15 @@ applies one constraint to a whole batch and each position has different legal
 moves. `batch_size` then only sets how many prompts are prepared together,
 and a value above 1 warns once; `batch_size="auto"` uses 1.
 
+`experimental_batched_choice=True` generates a whole batch at once instead,
+with each position restricted to its own legal moves. With ChessGPT-base on an
+RTX 5090 it was 3.6× faster at `batch_size=16` and 3.9× at 32. On 256
+positions it picked the same move as unbatched generation in 249 to 250,
+depending on the batch size. Where it differed, the two moves' scores were
+equal or one bfloat16 rounding step apart, and padding tipped them the other
+way. It is experimental: results can differ slightly from unbatched runs and
+between batch sizes.
+
 - **Names:** `Waterhorse/chessgpt-base-v1`, `Waterhorse/chessgpt-chat-v1_simple`
 - **Upstream:** [waterhorse1/ChessGPT](https://github.com/waterhorse1/ChessGPT)
 - **Paper:** [arXiv:2306.09200](https://arxiv.org/abs/2306.09200)

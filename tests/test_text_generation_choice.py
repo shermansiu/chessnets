@@ -188,3 +188,46 @@ def test_shuffled_legal_moves_are_the_same_in_every_run():
     assert sorted(next(iter(orders)), key=str) == sorted(
         history.active_board.legal_moves, key=str
     )
+
+
+def test_experimental_batched_choice_needs_the_choice_constraint():
+    with pytest.raises(ValueError, match="experimental_batched_choice"):
+        text.TextGenerationPipelineConfig(experimental_batched_choice=True)
+    config = text.TextGenerationPipelineConfig(
+        constraint="choice", experimental_batched_choice=True
+    )
+    assert config.experimental_batched_choice
+
+
+def test_experimental_batched_choice_generates_the_batch_in_one_call():
+    pipeline = object.__new__(text.TextGenerationPipeline)
+    pipeline.pipeline_config = text.TextGenerationPipelineConfig(
+        prompt_format="pgn_header",
+        constraint="choice",
+        experimental_batched_choice=True,
+    )
+    pipeline.temperature = 0.25
+    calls = []
+
+    class Generator:
+        def batch(self, prompts, **kwargs):
+            calls.append((prompts, kwargs))
+            return [row[0] for row in self.choices]
+
+    def batched_choice_generator(choices):
+        generator = Generator()
+        generator.choices = choices
+        return generator
+
+    pipeline._batched_choice_generator = batched_choice_generator
+    black_board = chess.Board()
+    black_board.push_uci("e2e4")
+
+    results = pipeline.forward_batch(
+        ["first", "second"],
+        [_history(chess.Board()), _history(black_board)],
+        [[chess.Move.from_uci("e2e4")], [chess.Move.from_uci("e7e5")]],
+    )
+
+    assert results == ["e4", "e5"]
+    assert calls == [(["first", "second"], {"temperature": 0.25})]
