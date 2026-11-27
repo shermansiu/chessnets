@@ -976,3 +976,14 @@ def load_pretrained_chessclip(
         )
         open_clip.load_checkpoint(model, chess_clip_checkpoint_path, weights_only=False)
     return model
+
+
+__all__ = [
+    "CLIPVisionCfg",
+    "ChessCLIP",
+    "FiLMModifiedResNet",
+    "build_model_from_openai_state_dict_chess",
+    "create_model",
+    "load_openai_model",
+    "load_pretrained_chessclip",
+]
