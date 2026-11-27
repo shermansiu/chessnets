@@ -63,6 +63,11 @@ later calls start from the size that fit. Predictions do not depend on the
 batch size for the board-only models, but batched text generation pads its
 inputs, so a language model's probabilities can change slightly with it.
 
+Text generation with `constraint="choice"` is the exception: it generates one
+position at a time, since each position allows different moves and Outlines
+applies one constraint to a whole batch. `batch_size="auto"` uses 1 there, and
+an integer above 1 only groups prompt preparation and warns once.
+
 LC0 converts PGNs and board histories eagerly. Consequently, its worker count
 applies to the conversion and post-processing stages; already-converted
 samples are batched locally without DataLoader workers. The `persistent_workers`

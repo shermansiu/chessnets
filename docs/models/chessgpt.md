@@ -17,6 +17,11 @@ pipeline = AutoPipeline.from_pretrained(
 )
 ```
 
+Multiple-choice mode generates one position at a time, because Outlines
+applies one constraint to a whole batch and each position has different legal
+moves. `batch_size` then only sets how many prompts are prepared together,
+and a value above 1 warns once; `batch_size="auto"` uses 1.
+
 - **Names:** `Waterhorse/chessgpt-base-v1`, `Waterhorse/chessgpt-chat-v1_simple`
 - **Upstream:** [waterhorse1/ChessGPT](https://github.com/waterhorse1/ChessGPT)
 - **Paper:** [arXiv:2306.09200](https://arxiv.org/abs/2306.09200)
