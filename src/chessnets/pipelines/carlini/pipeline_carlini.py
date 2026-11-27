@@ -13,7 +13,6 @@ import enum
 import json
 import logging
 import pathlib
-import random
 import typing as tp
 import warnings
 
@@ -36,6 +35,7 @@ from ..pipeline_utils import (
     adaptive_process_map,
     asyncio_run,
     iter_dataset_batches,
+    position_random,
     progress,
     resolve_num_workers,
 )
@@ -646,9 +646,9 @@ class CarliniPipeline(Pipeline):
             else None
         )
         if pred_move_san is None:
-            # If there's an error, just pick a random legal move
+            # If there's an error, pick a legal move, the same one in every run.
             legal_moves = list(board.legal_moves)
-            best_move = random.choice(legal_moves)
+            best_move = position_random(board, "fallback-move").choice(legal_moves)
             best_move_san = board.san(best_move)
             best_move_uci = str(best_move)
             preds_list = {m: 1 / len(legal_moves) for m in legal_moves}

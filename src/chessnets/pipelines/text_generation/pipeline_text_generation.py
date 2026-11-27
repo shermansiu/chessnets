@@ -13,7 +13,6 @@ import dataclasses
 import enum
 import json
 import logging
-import random
 import textwrap
 import types
 import typing as tp
@@ -43,6 +42,7 @@ from ..pipeline_utils import (
     adaptive_process_map,
     asyncio_run,
     iter_dataset_batches,
+    position_random,
     progress,
     resolve_num_workers,
 )
@@ -129,7 +129,9 @@ class _PromptDataset(torch.utils.data.Dataset):
     ) -> list[chess.Move]:
         legal_moves = list(history.active_board.legal_moves)
         if should_shuffle:
-            random.shuffle(legal_moves)
+            position_random(history.active_board, "shuffle-legal-moves").shuffle(
+                legal_moves
+            )
         return legal_moves
 
     @staticmethod
@@ -487,8 +489,10 @@ class OutlinesProbabilityPipeline(Pipeline):
         legal_moves: list[chess.Move],
         return_histories: bool = False,
     ):
-        # If there's an error, just pick a random legal move
-        best_move = random.choice(legal_moves)
+        # If there's an error, pick a legal move, the same one in every run.
+        best_move = position_random(history.active_board, "fallback-move").choice(
+            legal_moves
+        )
         best_move_san = history.active_board.san(best_move)
         best_move_uci = str(best_move)
         preds_list = {m: 1 / len(legal_moves) for m in legal_moves}

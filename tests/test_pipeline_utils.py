@@ -136,3 +136,41 @@ def test_adaptive_process_map_returns_empty_without_starting_pool(monkeypatch):
     monkeypatch.setattr(pipeline_utils, "process_map", fail_if_called)
 
     assert pipeline_utils.adaptive_process_map(lambda value: value, []) == []
+
+
+def test_position_random_depends_only_on_position_and_purpose():
+    import subprocess
+    import sys
+
+    import chess
+
+    board = chess.Board()
+    moves = list(board.legal_moves)
+    random.seed(1)
+    first = pipeline_utils.position_random(board, "fallback-move").choice(moves)
+    random.seed(2)
+    second = pipeline_utils.position_random(board, "fallback-move").choice(moves)
+    assert first == second
+    # Pinned so a change to the derivation, which changes archived results,
+    # is deliberate.
+    assert first.uci() == "h2h4"
+
+    code = (
+        "import chess\n"
+        "from chessnets.pipelines.pipeline_utils import position_random\n"
+        "b = chess.Board()\n"
+        "print(position_random(b, 'fallback-move').choice(list(b.legal_moves)))\n"
+    )
+    for hash_seed in ("0", "123"):
+        out = subprocess.run(
+            [sys.executable, "-c", code],
+            check=True,
+            capture_output=True,
+            text=True,
+            env={**__import__("os").environ, "PYTHONHASHSEED": hash_seed},
+        )
+        assert out.stdout.strip() == "h2h4"
+
+    shuffled = list(moves)
+    pipeline_utils.position_random(board, "shuffle-legal-moves").shuffle(shuffled)
+    assert sorted(shuffled, key=str) == sorted(moves, key=str)
