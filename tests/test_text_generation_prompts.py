@@ -1,10 +1,14 @@
-"""Pin what each text-generation profile sends to the model.
+"""Pin the exact text each text-generation profile sends to the model.
 
-``data/text_generation_profiles.json`` was recorded from the pipeline classes
-before they were merged into ``TextGenerationPipeline`` and ``CarliniPipeline``
-(ChessNets 0.1.1). Published benchmark results depend on these prompts, so any
-difference is a behavior change, not a refactor. Regenerate the file only for
-a deliberate prompt change, and record it in the changelog.
+``data/text_generation_profiles.json`` was recorded from ChessNets 0.1.1 as it
+ran with Outlines before 1.2.10, which sent prompts unchanged. Outlines 1.2.10
+and later instead wrap a prompt in the tokenizer's chat template, when it has
+one. The fakes below can behave either way, and every profile must produce the
+recorded text under both, so that prompts never depend on the Outlines version.
+
+Published benchmark results depend on these prompts, so any difference is a
+behavior change, not a refactor. Regenerate the file only for a deliberate
+prompt change, and record it in the changelog.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ import json
 import pathlib
 import types
 
+import jinja2
 import pytest
 import torch
 
@@ -46,6 +51,10 @@ PROFILES = {
     # How UniMaia loads its archived ChessGPT fine-tunes.
     "unimaia-local": (None, "pgn+prompt"),
 }
+CASES = [(name, False) for name in PROFILES] + [
+    (name, True) for name in PROFILES if name != "chat-v1"
+]
+OUTLINES_BEHAVIORS = ["before-1.2.10", "from-1.2.10"]
 
 
 def _clean(kwargs):
@@ -55,15 +64,20 @@ def _clean(kwargs):
     }
 
 
-@pytest.fixture
-def calls(monkeypatch):
-    """Replace Transformers and Outlines with fakes that record their calls."""
+def install_fakes(monkeypatch, outlines_behavior):
+    """Replace Transformers and Outlines with fakes that record their calls.
+
+    The recorded prompts are the text the model would see: from 1.2.10,
+    Outlines renders the tokenizer's chat template around a string prompt, as
+    one user message with a generation prompt, whenever there is a template.
+    """
     recorded = []
 
     class Tokenizer:
         pad_token_id = None
         eos_token_id = 0
-        chat_template = "unset"
+        # Stands for a template the checkpoint ships with.
+        chat_template = "Human: {{ messages[0]['content'] }}\nAssistant:"
 
     class Model:
         def __init__(self):
@@ -83,6 +97,14 @@ def calls(monkeypatch):
 
         return types.SimpleNamespace(from_pretrained=from_pretrained)
 
+    def seen_by_model(tokenizer, prompt):
+        if outlines_behavior == "from-1.2.10" and tokenizer.chat_template:
+            return jinja2.Template(tokenizer.chat_template).render(
+                messages=[{"role": "user", "content": prompt}],
+                add_generation_prompt=True,
+            )
+        return prompt
+
     class Regex:
         def __init__(self, pattern):
             self.desc = ["regex", pattern]
@@ -93,11 +115,13 @@ def calls(monkeypatch):
 
     class Generator:
         def __init__(self, model, output_type):
+            self.tokenizer = model.tokenizer
             self.desc = getattr(output_type, "desc", None) or output_type.__name__
             recorded.append(["generator", self.desc])
 
         def batch(self, prompts, **kwargs):
-            recorded.append(["batch", list(prompts), _clean(kwargs)])
+            seen = [seen_by_model(self.tokenizer, prompt) for prompt in prompts]
+            recorded.append(["batch", seen, _clean(kwargs)])
             if self.desc == "ChessResponse":
                 return ['{"moves": [{"move": "e4", "probability": 1.0}]}'] * len(
                     prompts
@@ -105,7 +129,8 @@ def calls(monkeypatch):
             return ["1. e4"] * len(prompts)
 
         def __call__(self, prompt, **kwargs):
-            recorded.append(["call", prompt, _clean(kwargs)])
+            seen = seen_by_model(self.tokenizer, prompt)
+            recorded.append(["call", seen, _clean(kwargs)])
             return self.desc[1][0]
 
     monkeypatch.setattr(
@@ -133,6 +158,24 @@ def calls(monkeypatch):
     return recorded
 
 
+def observe(recorded, load_pipeline, input_kind):
+    """Load a pipeline, predict, and return everything the fakes saw."""
+    pipeline = load_pipeline()
+    observed = {
+        "init_calls": list(recorded),
+        "temperature": pipeline.temperature,
+        "required": sorted(pipeline.input_config.required_inputs),
+        "pad": [
+            pipeline.model.tokenizer.pad_token_id,
+            pipeline.model.model.config.pad_token_id,
+        ],
+    }
+    recorded.clear()
+    pipeline.make_prediction(**INPUTS[input_kind], batch_size=8)
+    observed["predict_calls"] = list(recorded)
+    return observed
+
+
 def _load(profile_id, **kwargs):
     if profile_id is not None:
         return AutoPipeline.from_pretrained(profile_id, device="cpu", **kwargs)
@@ -147,31 +190,16 @@ def _load(profile_id, **kwargs):
     )
 
 
-CASES = [(name, False) for name in PROFILES] + [
-    (name, True) for name in PROFILES if name != "chat-v1"
-]
-
-
+@pytest.mark.parametrize("outlines_behavior", OUTLINES_BEHAVIORS)
 @pytest.mark.parametrize(
     "name, choice", CASES, ids=[f"{n}{'+choice' if c else ''}" for n, c in CASES]
 )
-def test_profile_sends_the_recorded_prompts(calls, name, choice):
+def test_profile_sends_the_recorded_text(monkeypatch, name, choice, outlines_behavior):
+    recorded = install_fakes(monkeypatch, outlines_behavior)
     profile_id, input_kind = PROFILES[name]
-    pipeline = _load(profile_id, **({"constraint": "choice"} if choice else {}))
-    observed = {
-        "init_calls": list(calls),
-        "prompt_template": pipeline.prompt_template,
-        "chat_template": pipeline.model.tokenizer.chat_template,
-        "temperature": pipeline.temperature,
-        "required": sorted(pipeline.input_config.required_inputs),
-        "pad": [
-            pipeline.model.tokenizer.pad_token_id,
-            pipeline.model.model.config.pad_token_id,
-        ],
-    }
-    calls.clear()
-    pipeline.make_prediction(**INPUTS[input_kind], batch_size=8)
-    observed["predict_calls"] = list(calls)
+    kwargs = {"constraint": "choice"} if choice else {}
+
+    observed = observe(recorded, lambda: _load(profile_id, **kwargs), input_kind)
 
     assert observed == EXPECTED[name + ("+choice" if choice else "")]
 
@@ -207,17 +235,18 @@ def test_carlini_mode_sends_the_recorded_prompts(tmp_path, mode):
     assert sorted(pipeline.input_config.required_inputs) == expected["required"]
 
 
-def test_positional_inputs_follow_the_format_order(calls):
+def test_positional_inputs_follow_the_format_order(monkeypatch):
     # ChessEval passes input columns positionally after the PGNs.
+    recorded = install_fakes(monkeypatch, "from-1.2.10")
     pipeline = _load(f"{CHAT}_general_policy")
     by_keyword = pipeline.make_prediction(**INPUTS["tc+elo"])
-    keyword_prompts = calls[-1][1]
+    keyword_prompts = recorded[-1][1]
     tc = INPUTS["tc+elo"]
     by_position = pipeline.make_prediction(
         PGNS, tc["time_control"], tc["white_elo"], tc["black_elo"]
     )
 
-    assert calls[-1][1] == keyword_prompts
+    assert recorded[-1][1] == keyword_prompts
     assert len(by_position.predictions) == len(by_keyword.predictions)
     with pytest.raises(TypeError, match="positional"):
         pipeline.make_prediction(PGNS, *([None] * 4))

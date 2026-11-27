@@ -1,6 +1,5 @@
 {
  "base-v1": {
-  "chat_template": null,
   "init_calls": [
    [
     "tok",
@@ -53,7 +52,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\n{pgn}",
   "required": [
    "pgns",
    "prompts"
@@ -61,7 +59,6 @@
   "temperature": null
  },
  "base-v1+choice": {
-  "chat_template": null,
   "init_calls": [
    [
     "tok",
@@ -322,7 +319,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\n{pgn}",
   "required": [
    "pgns",
    "prompts"
@@ -330,7 +326,6 @@
   "temperature": null
  },
  "base-v1_tc_elo": {
-  "chat_template": null,
   "init_calls": [
    [
     "tok",
@@ -383,7 +378,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\n{pgn}",
   "required": [
    "black_elos",
    "pgns",
@@ -393,7 +387,6 @@
   "temperature": null
  },
  "base-v1_tc_elo+choice": {
-  "chat_template": null,
   "init_calls": [
    [
     "tok",
@@ -654,7 +647,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\n{pgn}",
   "required": [
    "black_elos",
    "pgns",
@@ -695,7 +687,6 @@
   ]
  },
  "chat-v1": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -745,7 +736,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\n    PGN: {pgn}\n\n    FEN: {fen}\n\n    Legal moves: {legal_moves_str}\n\n    Determine the probability of playing each legal chess move in the given position. Respond in JSON format as a list of objects with `move` and `probability` fields, where `move` is in the SAN format. Ensure the probabilities sum to 1 and only include legal moves.",
   "required": [
    "pgns",
    "prompts"
@@ -753,7 +743,6 @@
   "temperature": null
  },
  "chat-v1_general_policy": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -797,8 +786,8 @@
    [
     "batch",
     [
-     "In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"300+0\"]\n[Termination \"Time forfeit\"]\n\n1. e4 e5 2. Nf3\n\nMake the next move.",
-     "In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"600+5\"]\n[Termination \"Time forfeit\"]\n\n1. d4\n\nMake the next move."
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"300+0\"]\n[Termination \"Time forfeit\"]\n\n1. e4 e5 2. Nf3\n\nMake the next move.<|endoftext|>Human 1: ",
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"600+5\"]\n[Termination \"Time forfeit\"]\n\n1. d4\n\nMake the next move.<|endoftext|>Human 1: "
     ],
     {
      "max_new_tokens": 7,
@@ -806,7 +795,6 @@
     }
    ]
   ],
-  "prompt_template": "In the following chess game, you play {colour}:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"{win_result}\"]\n[WhiteElo \"{white_elo}\"]\n[BlackElo \"{black_elo}\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"{time_control}\"]\n[Termination \"Time forfeit\"]\n\n{pgn}\n\nMake the next move.",
   "required": [
    "black_elos",
    "pgns",
@@ -816,7 +804,6 @@
   "temperature": null
  },
  "chat-v1_general_policy+choice": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -889,7 +876,7 @@
    ],
    [
     "call",
-    "In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"300+0\"]\n[Termination \"Time forfeit\"]\n\n1. e4 e5 2. Nf3\n\nMake the next move.",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"1500\"]\n[BlackElo \"1400\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"300+0\"]\n[Termination \"Time forfeit\"]\n\n1. e4 e5 2. Nf3\n\nMake the next move.<|endoftext|>Human 1: ",
     {
      "temperature": null
     }
@@ -924,13 +911,12 @@
    ],
    [
     "call",
-    "In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"600+5\"]\n[Termination \"Time forfeit\"]\n\n1. d4\n\nMake the next move.",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: In the following chess game, you play black:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"0-1\"]\n[WhiteElo \"2000\"]\n[BlackElo \"2100\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"600+5\"]\n[Termination \"Time forfeit\"]\n\n1. d4\n\nMake the next move.<|endoftext|>Human 1: ",
     {
      "temperature": null
     }
    ]
   ],
-  "prompt_template": "In the following chess game, you play {colour}:\n[Event \"Rated Classical game https://lichess.org/tournament/xxxx\"]\n[Date \"2017.04.01\"]\n[Round \"-\"]\n[White \"???\"]\n[Black \"???\"]\n[Result \"{win_result}\"]\n[WhiteElo \"{white_elo}\"]\n[BlackElo \"{black_elo}\"]\n[WhiteRatingDiff \"??\"]\n[BlackRatingDiff \"??\"]\n[ECO \"??\"]\n[Opening \"??\"]\n[TimeControl \"{time_control}\"]\n[Termination \"Time forfeit\"]\n\n{pgn}\n\nMake the next move.",
   "required": [
    "black_elos",
    "pgns",
@@ -940,7 +926,6 @@
   "temperature": null
  },
  "chat-v1_simple": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -984,8 +969,8 @@
    [
     "batch",
     [
-     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.",
-     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move."
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: "
     ],
     {
      "max_new_tokens": 7,
@@ -993,7 +978,6 @@
     }
    ]
   ],
-  "prompt_template": "A friendly, helpful chat between some humans.<|endoftext|>Human 0: {prompt}\n\nPGN: {pgn}\n\nJust write your move.",
   "required": [
    "pgns",
    "prompts"
@@ -1001,7 +985,6 @@
   "temperature": null
  },
  "chat-v1_simple+choice": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -1074,7 +1057,7 @@
    ],
    [
     "call",
-    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
     {
      "temperature": null
     }
@@ -1109,13 +1092,12 @@
    ],
    [
     "call",
-    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: ",
     {
      "temperature": null
     }
    ]
   ],
-  "prompt_template": "A friendly, helpful chat between some humans.<|endoftext|>Human 0: {prompt}\n\nPGN: {pgn}\n\nJust write your move.",
   "required": [
    "pgns",
    "prompts"
@@ -1123,7 +1105,6 @@
   "temperature": null
  },
  "chat-v1_simple_original": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -1167,8 +1148,8 @@
    [
     "batch",
     [
-     "Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.",
-     "Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move."
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
+     "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: "
     ],
     {
      "max_new_tokens": 7,
@@ -1176,7 +1157,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\nPGN: {pgn}\n\nJust write your move.",
   "required": [
    "pgns",
    "prompts"
@@ -1184,7 +1164,6 @@
   "temperature": null
  },
  "chat-v1_simple_original+choice": {
-  "chat_template": "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n",
   "init_calls": [
    [
     "tok",
@@ -1257,7 +1236,7 @@
    ],
    [
     "call",
-    "Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Play well.\n\nPGN: 1. e4 e5 2. Nf3\n\nJust write your move.<|endoftext|>Human 1: ",
     {
      "temperature": null
     }
@@ -1292,13 +1271,12 @@
    ],
    [
     "call",
-    "Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.",
+    "A friendly, helpful chat between some humans.<|endoftext|>Human 0: Think.\n\nPGN: [Event \"x\"]\n[WhiteElo \"1500\"]\n\n1. d4\n\nJust write your move.<|endoftext|>Human 1: ",
     {
      "temperature": null
     }
    ]
   ],
-  "prompt_template": "{prompt}\n\nPGN: {pgn}\n\nJust write your move.",
   "required": [
    "pgns",
    "prompts"
@@ -1306,7 +1284,6 @@
   "temperature": null
  },
  "unimaia-local": {
-  "chat_template": null,
   "init_calls": [
    [
     "tok",
@@ -1358,7 +1335,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}<|endoftext|>{pgn}",
   "required": [
    "pgns",
    "prompts"
@@ -1366,7 +1342,6 @@
   "temperature": null
  },
  "unimaia-local+choice": {
-  "chat_template": null,
   "init_calls": [
    [
     "tok",
@@ -1626,7 +1601,6 @@
     }
    ]
   ],
-  "prompt_template": "{prompt}<|endoftext|>{pgn}",
   "required": [
    "pgns",
    "prompts"

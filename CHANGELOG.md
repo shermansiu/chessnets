@@ -42,7 +42,6 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `chat_original`, `general_policy`, `pgn_header` (also replacing
     `LocalHFTransformersSimpleTextPipelinePgnHeader`; pass
     `attn_implementation=None`) and `pgn_header_with_time_control_and_elo`.
-    The prompts they send are unchanged.
   - `HFTransformersProbabilityTextPipeline`, `OutlinesProbabilityTextPipeline`
     and `(Async)OpenAIProbabilityTextPipeline` are
     `TransformersProbabilityPipeline`, `OutlinesProbabilityPipeline` and
@@ -51,10 +50,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - The Carlini pipelines are `CarliniPipeline` and `AsyncCarliniPipeline`,
     with the variant chosen by `CarliniPipelineConfig(input_mode=...)`;
     `num_tokens` is keyword-only, and the dataset classes are private.
-- The `text-generation` extra requires Outlines 1.2.10 or later, which applies
-  the tokenizer's chat template itself, and no longer installs `jinja2` or
-  `packaging`. The fallback for older Outlines, which rendered the template
-  with an extra system message and so sent different prompts, is gone.
+- ChessGPT prompts no longer depend on the Outlines version. ChessNets renders
+  the chat template itself and gives the tokenizer none, so every version
+  sends the prompts ChessNets 0.1.1 sent with Outlines before 1.2.10:
+  ChessGPT's system message twice in `chessgpt-chat-v1_simple`, and once in
+  `_simple_original` and `_general_policy`; `chessgpt-chat-v1` gets no chat
+  template. With Outlines 1.2.10 or later, which wrapped prompts in the
+  tokenizer's template, these four profiles now send different prompts than
+  0.1.1 did, so their results differ from runs made that way.
+  `TransformersProbabilityPipeline`'s `chat_template` now defaults to `None`.
+  The `text-generation` extra requires Outlines 1.2.9 or later and no longer
+  installs `packaging`.
 - Allie checkpoints load with `weights_only=True` on every PyTorch version.
 
 ## [0.1.1] - 2026-11-23

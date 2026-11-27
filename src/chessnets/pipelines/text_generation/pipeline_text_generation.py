@@ -47,6 +47,7 @@ from ..pipeline_utils import (
     resolve_num_workers,
 )
 
+jinja2_sandbox = optional_module("jinja2.sandbox", "text-generation")
 openai = optional_module("openai", "text-generation")
 outlines = optional_module("outlines", "text-generation")
 transformers = optional_module("transformers", "text-generation")
@@ -586,10 +587,40 @@ def _default_attn_implementation() -> str:
 
 PAPER_CHESSGPT_TEMPLATE = "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n"
 NEWLINE_CHESSGPT_TEMPLATE = "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ '\n'~message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ '\n'~message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n"
+CHESSGPT_SYSTEM_PROMPT = "A friendly, helpful chat between some humans."
+
+
+def render_chat_prompt_template(
+    chat_template: str,
+    prompt_template: str,
+    system_prompt: str = CHESSGPT_SYSTEM_PROMPT,
+) -> str:
+    """Render a chat template around a prompt template, keeping its fields.
+
+    The result is one system message and one user message, the user message
+    being ``prompt_template`` with its ``{prompt}``-style fields still to be
+    filled in, followed by the generation prompt.
+    """
+    environment = jinja2_sandbox.SandboxedEnvironment()
+    return environment.from_string(chat_template).render(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt_template},
+        ],
+        add_generation_prompt=True,
+    )
 
 
 class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
-    """:class:`OutlinesProbabilityPipeline` for a local Transformers causal LM."""
+    """:class:`OutlinesProbabilityPipeline` for a local Transformers causal LM.
+
+    ChessNets builds the whole prompt itself, so the model sees the same text
+    with every Outlines version. With a ``chat_template``, the prompt template
+    is rendered as a system message (:data:`CHESSGPT_SYSTEM_PROMPT`) and a
+    user message, as :func:`render_chat_prompt_template` does. The tokenizer
+    is given no chat template, so Outlines never applies one again; Outlines
+    1.2.10 and later otherwise wrap every prompt in it.
+    """
 
     auto_batch_sizes = {"cpu": 4, "cuda": 8}
 
@@ -600,7 +631,7 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
         dtype: torch.dtype = torch.bfloat16,
         temperature: float = 0.0,
         prompt_template: str = DEFAULT_OUTLINES_PROMPT_TEMPLATE,
-        chat_template: str | None = PAPER_CHESSGPT_TEMPLATE,
+        chat_template: str | None = None,
         input_config: PipelineInputConfig | None = None,
         revision: str | None = None,
         cache_dir: str | None = None,
@@ -637,8 +668,14 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
                 and model.generation_config.pad_token_id is None
             ):
                 model.generation_config.pad_token_id = tokenizer.pad_token_id
-        # Waterhorse/chessgpt-chat-v1 chat template:
-        tokenizer.chat_template = chat_template
+        if chat_template is not None:
+            prompt_template = render_chat_prompt_template(
+                chat_template, prompt_template
+            )
+        # Outlines 1.2.10 and later apply the tokenizer's chat template to
+        # string prompts, and earlier versions do not. Without one, every
+        # version sends the prompt rendered above unchanged.
+        tokenizer.chat_template = None
         if temperature == 0.0:
             temperature = None
         super().__init__(
@@ -959,21 +996,25 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
     and is faster. :class:`TextGenerationPipelineConfig` selects the prompt
     format and how generation is constrained.
 
-    Outlines 1.2.10 and later wrap each prompt in the tokenizer's chat
-    template as one user message, with no system message. The
-    TextPromptFormat.CHAT template already starts with ChessGPT's system
-    text and Human 0:, so the model sees::
+    The chat formats render ChessGPT's chat template with a system message
+    around the format's prompt template, and the model sees exactly that text
+    with every Outlines version. The ``TextPromptFormat.CHAT`` template is
+    itself a ChessGPT chat turn, so its prompt contains the system text twice::
 
-        Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: {prompt}
+        A friendly, helpful chat between some humans.<|endoftext|>Human 0: A friendly, helpful chat between some humans.<|endoftext|>Human 0: {prompt}
 
         PGN: {pgn}
 
         Just write your move.<|endoftext|>Human 1:
 
-    TextPromptFormat.CHAT_ORIGINAL holds only the user's message, so its
-    prompt has no system text. Before Outlines 1.2.10, ChessNets rendered the
-    chat template itself with the system message, which put it in each
-    format's prompt once more.
+    This worked better than applying the template once, which
+    ``TextPromptFormat.CHAT_ORIGINAL`` does::
+
+        A friendly, helpful chat between some humans.<|endoftext|>Human 0: {prompt}
+
+        PGN: {pgn}
+
+        Just write your move.<|endoftext|>Human 1:
     """
 
     def __init__(
@@ -1187,6 +1228,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
 
 __all__ = [
     "AsyncOpenAIProbabilityPipeline",
+    "CHESSGPT_SYSTEM_PROMPT",
     "DEFAULT_BASIC_PROMPT_TEMPLATE",
     "DEFAULT_OUTLINES_PROMPT_TEMPLATE",
     "DEFAULT_PGN_HEADER_WITH_TIME_CONTROL_AND_ELO",
@@ -1208,4 +1250,5 @@ __all__ = [
     "WATERHORSE_CHESSGPT_PROMPT_TEMPLATE_RAW",
     "numbered_move_choices",
     "pgn_continuation_move_choices",
+    "render_chat_prompt_template",
 ]
