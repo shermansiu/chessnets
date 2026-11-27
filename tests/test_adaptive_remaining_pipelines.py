@@ -8,7 +8,7 @@ from chessnets.pipelines.carlini.pipeline_carlini import (
     CarliniOpenAIInstructChessDataset,
     CarliniOpenAIInstructChessPipeline,
 )
-from chessnets.pipelines.chess_clip.pipeline_chess_clip import ChessClipDataset
+from chessnets.pipelines.chess_clip.pipeline_chess_clip import ChessCLIPDataset
 from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Dataset, Maia2Pipeline
 from chessnets.pipelines.text_generation.pipeline_text_generation import (
     DEFAULT_OUTLINES_PROMPT_TEMPLATE,
@@ -66,7 +66,7 @@ def test_maia2_rejects_removed_singular_fen_keyword():
 
 
 def test_chess_clip_dataset_uses_local_history_preparation():
-    dataset = ChessClipDataset(
+    dataset = ChessCLIPDataset(
         PGN,
         "Describe the position",
         lambda texts: torch.zeros((len(texts), 1), dtype=torch.int64),

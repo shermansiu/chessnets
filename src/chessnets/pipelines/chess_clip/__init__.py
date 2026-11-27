@@ -1,13 +1,13 @@
 """ChessCLIP inference pipeline."""
 
 from .pipeline_chess_clip import (
-    ChessClipDataset,
-    ChessClipPipeline,
-    OpenClipTokenizer,
+    ChessCLIPDataset,
+    ChessCLIPPipeline,
+    OpenCLIPTokenizer,
 )
 
 __all__ = [
-    "ChessClipDataset",
-    "ChessClipPipeline",
-    "OpenClipTokenizer",
+    "ChessCLIPDataset",
+    "ChessCLIPPipeline",
+    "OpenCLIPTokenizer",
 ]

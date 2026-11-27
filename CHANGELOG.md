@@ -29,6 +29,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `Lc0InferenceConfig`). Checkpoints whose `config.json` names the old
     classes still load.
   - Maia 2's `Config` is `Maia2Config`.
+  - ChessCLIP's `ChessCLIP`, `ChessClipPipeline`, `ChessClipDataset` and
+    `OpenClipTokenizer` are `ChessCLIPModel`, `ChessCLIPPipeline`,
+    `ChessCLIPDataset` and `OpenCLIPTokenizer`.
 
 ## [0.1.1] - 2026-11-23
 

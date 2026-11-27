@@ -94,9 +94,9 @@ def _published_unimaia_factory(
 
 
 def create_chess_clip_pipeline(device: tp.Any, **kwargs: tp.Any) -> tp.Any:
-    from .chess_clip.pipeline_chess_clip import ChessClipPipeline
+    from .chess_clip.pipeline_chess_clip import ChessCLIPPipeline
 
-    return ChessClipPipeline.from_pretrained(
+    return ChessCLIPPipeline.from_pretrained(
         "Waterhorse/ChessCLIP", device=device, **kwargs
     )
 

@@ -38,7 +38,7 @@ freeze_batch_norm_2d = import_optional(
 ).freeze_batch_norm_2d
 
 
-class ChessCLIP(torch.nn.Module):
+class ChessCLIPModel(torch.nn.Module):
     def __init__(
         self,
         embed_dim: int,
@@ -116,7 +116,7 @@ class ChessCLIP(torch.nn.Module):
         """Load the published ChessCLIP checkpoint by repository ID."""
         if pretrained_model_name_or_path != "Waterhorse/ChessCLIP":
             raise ValueError(
-                "ChessCLIP currently supports only 'Waterhorse/ChessCLIP'."
+                "ChessCLIPModel currently supports only 'Waterhorse/ChessCLIP'."
             )
         return load_pretrained_chessclip(**kwargs)
 
@@ -267,7 +267,7 @@ def build_model_from_openai_state_dict_chess(
     )  # OpenAI state dicts are partially converted to float16
     openai_model.load_state_dict(state_dict)
 
-    model = ChessCLIP(
+    model = ChessCLIPModel(
         embed_dim,
         chess_vision_cfg=chess_vision_cfg,
         text_cfg=None,
@@ -980,7 +980,7 @@ def load_pretrained_chessclip(
 
 __all__ = [
     "CLIPVisionCfg",
-    "ChessCLIP",
+    "ChessCLIPModel",
     "FiLMModifiedResNet",
     "build_model_from_openai_state_dict_chess",
     "create_model",

@@ -1,7 +1,7 @@
 """ChessCLIP model components."""
 
 from .modeling_chess_clip import (
-    ChessCLIP,
+    ChessCLIPModel,
     CLIPVisionCfg,
     FiLMModifiedResNet,
     build_model_from_openai_state_dict_chess,
@@ -12,7 +12,7 @@ from .modeling_chess_clip import (
 
 __all__ = [
     "CLIPVisionCfg",
-    "ChessCLIP",
+    "ChessCLIPModel",
     "FiLMModifiedResNet",
     "build_model_from_openai_state_dict_chess",
     "create_model",

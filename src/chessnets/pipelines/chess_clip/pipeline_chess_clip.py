@@ -22,18 +22,18 @@ from ..pipeline_utils import (
 )
 
 
-class OpenClipTokenizer(tp.Protocol):
+class OpenCLIPTokenizer(tp.Protocol):
     def __call__(
         self, texts: str | list[str], context_length: int = 77
     ) -> torch.LongTensor: ...
 
 
-class ChessClipDataset(torch.utils.data.Dataset):
+class ChessCLIPDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         pgns: list[str] | str,
         prompts: list[str] | str,
-        tokenizer: OpenClipTokenizer,
+        tokenizer: OpenCLIPTokenizer,
         *,
         num_workers: int | None = None,
         parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
@@ -102,13 +102,13 @@ class ChessClipDataset(torch.utils.data.Dataset):
         )
 
 
-class ChessClipPipeline(Pipeline):
+class ChessCLIPPipeline(Pipeline):
     auto_batch_sizes = {"cpu": 64, "cuda": 256}
 
     def __init__(
         self,
         model: torch.nn.Module,
-        tokenizer: OpenClipTokenizer,
+        tokenizer: OpenCLIPTokenizer,
         temperature: float = 1.0,
         input_config: PipelineInputConfig | None = None,
     ):
@@ -132,7 +132,7 @@ class ChessClipPipeline(Pipeline):
         """Load the published ChessCLIP checkpoint."""
         if pretrained_model_name_or_path != "Waterhorse/ChessCLIP":
             raise ValueError(
-                "ChessClipPipeline currently supports only the published "
+                "ChessCLIPPipeline currently supports only the published "
                 "'Waterhorse/ChessCLIP' checkpoint."
             )
         open_clip = import_optional("open_clip", "chess-clip")
@@ -143,7 +143,7 @@ class ChessClipPipeline(Pipeline):
         model_kwargs = dict(kwargs.pop("model_kwargs", {}))
         model_kwargs["model_name"] = model_name
         model_kwargs.setdefault("device", device)
-        model = chess_clip.ChessCLIP.from_pretrained(
+        model = chess_clip.ChessCLIPModel.from_pretrained(
             pretrained_model_name_or_path, **model_kwargs
         )
         model.eval()
@@ -233,7 +233,7 @@ class ChessClipPipeline(Pipeline):
             requested_workers=num_workers,
             parallel_threshold=parallel_threshold,
         )
-        dataset = ChessClipDataset(
+        dataset = ChessCLIPDataset(
             pgns=pgns,
             prompts=prompts,
             tokenizer=self.tokenizer,
@@ -292,7 +292,7 @@ class ChessClipPipeline(Pipeline):
 
 
 __all__ = [
-    "ChessClipDataset",
-    "ChessClipPipeline",
-    "OpenClipTokenizer",
+    "ChessCLIPDataset",
+    "ChessCLIPPipeline",
+    "OpenCLIPTokenizer",
 ]
