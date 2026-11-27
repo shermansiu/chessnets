@@ -22,6 +22,17 @@ DEFAULT_PARALLEL_THRESHOLD = 32
 T = tp.TypeVar("T")
 
 
+def position_random(board: chess.Board, purpose: str) -> random.Random:
+    """Return a random number generator determined by the position and purpose.
+
+    Random choices made with it, such as the fallback move when a model's
+    output can't be parsed, are the same in every run, process and batch
+    order. ``random.Random`` seeds a string with its SHA-512 hash, so the
+    seed does not depend on ``PYTHONHASHSEED``.
+    """
+    return random.Random(f"chessnets:{purpose}:{board.fen()}")
+
+
 def progress(iterable: tp.Iterable[T], **kwargs: tp.Any) -> tp.Iterator[T]:
     """Iterate with a tqdm progress bar when tqdm is installed.
 
@@ -250,6 +261,7 @@ __all__ = [
     "iter_dataset_batches",
     "mirror_move",
     "pause_running_loop",
+    "position_random",
     "process_map",
     "resolve_num_workers",
 ]

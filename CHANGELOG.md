@@ -62,6 +62,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The `text-generation` extra requires Outlines 1.2.9 or later and no longer
   installs `packaging`.
 - Allie checkpoints load with `weights_only=True` on every PyTorch version.
+- When a text-generation or Carlini model's output can't be used, the legal
+  move picked in its place is now the same in every run, and so is the move
+  order that `should_shuffle_legal_moves=True` puts in the prompt. Both are
+  derived from the position (its FEN) instead of Python's global random
+  state, so they don't depend on `random.seed`, worker processes or batch
+  order. Earlier results that contain such a fallback move can't be
+  reproduced exactly.
 
 ## [0.1.1] - 2026-11-23
 

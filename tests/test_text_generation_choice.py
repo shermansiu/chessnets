@@ -127,3 +127,35 @@ def test_pipeline_rejects_unknown_constraint_before_model_loading():
 def test_config_rejects_unknown_prompt_format():
     with pytest.raises(ValueError, match="prompt format"):
         text.TextGenerationPipelineConfig(prompt_format="unknown")
+
+
+def test_fallback_move_is_the_same_in_every_run():
+    import random
+
+    board = chess.Board()
+    history = _history(board)
+    moves = list(board.legal_moves)
+    picks = set()
+    for seed in range(5):
+        random.seed(seed)
+        prediction = text.OutlinesProbabilityPipeline.post_process_failure(
+            history, moves
+        )
+        picks.add(prediction.best_move_uci)
+    assert picks == {"h2h4"}
+
+
+def test_shuffled_legal_moves_are_the_same_in_every_run():
+    import random
+
+    from chessnets.utils import board_history
+
+    history = board_history.BoardHistory.from_pgn("1. e4 e5")
+    orders = set()
+    for seed in range(5):
+        random.seed(seed)
+        orders.add(tuple(text._PromptDataset.history_to_legal_moves(history, True)))
+    assert len(orders) == 1
+    assert sorted(next(iter(orders)), key=str) == sorted(
+        history.active_board.legal_moves, key=str
+    )
