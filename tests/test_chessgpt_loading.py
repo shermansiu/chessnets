@@ -35,9 +35,7 @@ def test_transformers_loader_forwards_checkpoint_options(monkeypatch):
         ),
     )
 
-    pipeline = object.__new__(
-        pipeline_text_generation.HFTransformersProbabilityTextPipeline
-    )
+    pipeline = object.__new__(pipeline_text_generation.TransformersProbabilityPipeline)
     model, loaded_tokenizer = pipeline.load_model_and_tokenizer(
         "org/checkpoint",
         device="cpu",

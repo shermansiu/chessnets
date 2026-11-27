@@ -96,7 +96,7 @@ def test_canonical_pipeline_imports_do_not_use_legacy_implementation():
     modules = _run_import_check(
         "from chessnets.pipelines.lc0 import Lc0Pipeline",
         "from chessnets.pipelines.unimaia import UniMaiaPipeline",
-        "from chessnets.pipelines.text_generation import OutlinesDataset",
+        "from chessnets.pipelines.text_generation import TextGenerationPipeline",
     )
     assert "chessnets.pipelines.lc0.pipeline_lc0" in modules
     assert "chessnets.pipelines.unimaia.pipeline_unimaia" in modules

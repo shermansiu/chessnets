@@ -303,6 +303,31 @@ class PipelineInputConfig:
         return normalized
 
 
+def bind_positional_inputs(
+    order: tp.Sequence[str],
+    positional: tp.Sequence[tp.Any],
+    keywords: tp.Mapping[str, tp.Any],
+) -> dict[str, tp.Any]:
+    """Assign inputs passed positionally after the PGNs to the names in ``order``.
+
+    Pipelines whose inputs depend on a configured mode use this so that callers
+    may pass inputs in their canonical order (``pgns, prompts, time_controls,
+    white_elos, black_elos``), as ChessEval does, or by keyword.
+    """
+    if len(positional) > len(order):
+        expected = ", ".join(order) or "none"
+        raise TypeError(
+            f"Expected at most {len(order)} positional input(s) after the PGNs "
+            f"({expected}), got {len(positional)}"
+        )
+    bound = dict(keywords)
+    for name, value in zip(order, positional):
+        if bound.get(name) is not None:
+            raise TypeError(f"Pipeline input {name!r} was given twice")
+        bound[name] = value
+    return bound
+
+
 BatchSize = int | tp.Literal["auto"]
 """A batch size, or ``"auto"`` to find one that fits in memory."""
 
@@ -424,5 +449,6 @@ __all__ = [
     "Pipeline",
     "PipelineInputName",
     "PipelineInputConfig",
+    "bind_positional_inputs",
     "extract_domain_inputs",
 ]

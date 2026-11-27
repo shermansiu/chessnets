@@ -7,8 +7,8 @@ from chessnets.pipelines.lc0.pipeline_lc0 import Lc0Pipeline
 from chessnets.pipelines.maia2 import pipeline_maia2
 from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Pipeline
 from chessnets.pipelines.text_generation.pipeline_text_generation import (
-    HFTransformersProbabilityTextPipeline,
-    OpenAIProbabilityTextPipeline,
+    OpenAIProbabilityPipeline,
+    TransformersProbabilityPipeline,
 )
 
 
@@ -67,7 +67,7 @@ def test_maia2_from_pretrained_accepts_registry_alias_and_pipeline_options(monke
 
 
 def test_model_id_pipeline_loaders_construct_the_requested_subclass():
-    class TextPipeline(HFTransformersProbabilityTextPipeline):
+    class TextPipeline(TransformersProbabilityPipeline):
         def __init__(self, model_id, **kwargs):
             self.model_id = model_id
             self.kwargs = kwargs
@@ -76,12 +76,12 @@ def test_model_id_pipeline_loaders_construct_the_requested_subclass():
     assert text_pipeline.model_id == "org/model"
     assert text_pipeline.kwargs == {"temperature": 0.2}
 
-    class OpenAIPipeline(OpenAIProbabilityTextPipeline):
+    class StubOpenAIPipeline(OpenAIProbabilityPipeline):
         def __init__(self, model_id, **kwargs):
             self.model_id = model_id
             self.kwargs = kwargs
 
-    openai_pipeline = OpenAIPipeline.from_pretrained("gpt-test")
+    openai_pipeline = StubOpenAIPipeline.from_pretrained("gpt-test")
     assert openai_pipeline.model_id == "gpt-test"
 
     class CarliniPipeline(CarliniOpenAIInstructChessPipeline):

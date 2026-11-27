@@ -12,6 +12,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `batch_size="auto"` when calling a pipeline. It starts from a batch size
   suited to the pipeline and its device, halves it whenever a batch runs out
   of memory, and keeps the size that fits; `last_batch_size` records it.
+- `TextGenerationPipeline`, configured by `TextGenerationPipelineConfig`
+  (`prompt_format` and `constraint`), for any causal language model.
 
 ### Changed
 
@@ -32,6 +34,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - ChessCLIP's `ChessCLIP`, `ChessClipPipeline`, `ChessClipDataset` and
     `OpenClipTokenizer` are `ChessCLIPModel`, `ChessCLIPPipeline`,
     `ChessCLIPDataset` and `OpenCLIPTokenizer`.
+  - The six `HFTransformersSimpleTextPipeline*` classes are
+    `TextGenerationPipeline` with a `TextPromptFormat`: `chat`,
+    `chat_original`, `general_policy`, `pgn_header` (also replacing
+    `LocalHFTransformersSimpleTextPipelinePgnHeader`; pass
+    `attn_implementation=None`) and `pgn_header_with_time_control_and_elo`.
+    The prompts they send are unchanged.
+  - `HFTransformersProbabilityTextPipeline`, `OutlinesProbabilityTextPipeline`
+    and `(Async)OpenAIProbabilityTextPipeline` are
+    `TransformersProbabilityPipeline`, `OutlinesProbabilityPipeline` and
+    `(Async)OpenAIProbabilityPipeline`.
+  - The text-generation dataset classes are private.
 
 ## [0.1.1] - 2026-11-23
 

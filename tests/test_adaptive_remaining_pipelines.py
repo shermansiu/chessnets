@@ -12,7 +12,7 @@ from chessnets.pipelines.chess_clip.pipeline_chess_clip import ChessCLIPDataset
 from chessnets.pipelines.maia2.pipeline_maia2 import Maia2Dataset, Maia2Pipeline
 from chessnets.pipelines.text_generation.pipeline_text_generation import (
     DEFAULT_OUTLINES_PROMPT_TEMPLATE,
-    OutlinesProbabilityTextPipeline,
+    OutlinesProbabilityPipeline,
 )
 
 PGN = "1. e4 e5 2. Nf3 *"
@@ -79,7 +79,7 @@ def test_chess_clip_dataset_uses_local_history_preparation():
     assert seq_length == len(legal_moves)
 
 
-class _FailingTextPipeline(OutlinesProbabilityTextPipeline):
+class _FailingTextPipeline(OutlinesProbabilityPipeline):
     def __init__(self):
         self.prompt_template = DEFAULT_OUTLINES_PROMPT_TEMPLATE
 

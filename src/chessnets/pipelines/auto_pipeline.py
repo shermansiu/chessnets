@@ -103,18 +103,27 @@ def create_chess_clip_pipeline(device: tp.Any, **kwargs: tp.Any) -> tp.Any:
 
 def create_chessgpt_pipeline(
     checkpoint_id: str,
-    pipeline_class_name: str,
+    prompt_format: str | None,
     device: tp.Any,
     **kwargs: tp.Any,
 ) -> tp.Any:
-    """Create one of the curated ChessGPT inference profiles lazily."""
-    from .text_generation import pipeline_text_generation
+    """Create one of the curated ChessGPT inference profiles lazily.
 
-    pipeline_class = getattr(pipeline_text_generation, pipeline_class_name)
-    return pipeline_class.from_pretrained(
-        checkpoint_id,
-        device=device,
-        **kwargs,
+    ``prompt_format=None`` selects the JSON move-probability pipeline; any
+    other value is a :class:`TextPromptFormat` for ``TextGenerationPipeline``.
+    """
+    from .text_generation import pipeline_text_generation as text
+
+    if prompt_format is None:
+        return text.TransformersProbabilityPipeline.from_pretrained(
+            checkpoint_id, device=device, **kwargs
+        )
+    kwargs.setdefault(
+        "pipeline_config",
+        text.TextGenerationPipelineConfig(prompt_format=prompt_format),
+    )
+    return text.TextGenerationPipeline.from_pretrained(
+        checkpoint_id, device=device, **kwargs
     )
 
 
@@ -366,40 +375,22 @@ def _register_builtins() -> None:
     )
     AutoPipeline.register("Waterhorse/ChessCLIP", create_chess_clip_pipeline)
 
+    chat, base = "Waterhorse/chessgpt-chat-v1", "Waterhorse/chessgpt-base-v1"
     chessgpt_profiles = {
-        "Waterhorse/chessgpt-chat-v1": (
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersProbabilityTextPipeline",
-        ),
-        "Waterhorse/chessgpt-chat-v1_simple": (
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipeline",
-        ),
-        "Waterhorse/chessgpt-chat-v1_simple_original": (
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipelineOriginal",
-        ),
-        "Waterhorse/chessgpt-chat-v1_general_policy": (
-            "Waterhorse/chessgpt-chat-v1",
-            "HFTransformersSimpleTextPipelineGeneralPolicy",
-        ),
-        "Waterhorse/chessgpt-base-v1": (
-            "Waterhorse/chessgpt-base-v1",
-            "HFTransformersSimpleTextPipelinePgnHeader",
-        ),
-        "Waterhorse/chessgpt-base-v1_with-time-control-and-elo": (
-            "Waterhorse/chessgpt-base-v1",
-            "HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo",
+        chat: (chat, None),
+        f"{chat}_simple": (chat, "chat"),
+        f"{chat}_simple_original": (chat, "chat_original"),
+        f"{chat}_general_policy": (chat, "general_policy"),
+        base: (base, "pgn_header"),
+        f"{base}_with-time-control-and-elo": (
+            base,
+            "pgn_header_with_time_control_and_elo",
         ),
     }
-    for profile_id, (checkpoint_id, pipeline_class_name) in chessgpt_profiles.items():
+    for profile_id, (checkpoint_id, prompt_format) in chessgpt_profiles.items():
         AutoPipeline.register(
             profile_id,
-            functools.partial(
-                create_chessgpt_pipeline,
-                checkpoint_id,
-                pipeline_class_name,
-            ),
+            functools.partial(create_chessgpt_pipeline, checkpoint_id, prompt_format),
         )
     AutoPipeline.register(
         "shermansiu/maia2-blitz",

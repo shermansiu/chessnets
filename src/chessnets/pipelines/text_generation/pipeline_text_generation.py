@@ -1,8 +1,16 @@
-"""Transformers, Outlines, and OpenAI-backed chess text pipelines."""
+"""Text-generation chess pipelines backed by Transformers, Outlines, or OpenAI.
+
+``TextGenerationPipeline`` asks a causal language model such as ChessGPT to
+write the next move, in one of the prompt formats of :class:`TextPromptFormat`.
+The ``*ProbabilityPipeline`` classes ask a model for a JSON distribution over
+the legal moves instead.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import enum
 import importlib.metadata
 import json
 import logging
@@ -19,7 +27,12 @@ import torch.utils.data
 from chessnets._optional import import_optional, optional_module
 from chessnets.utils import board_history
 
-from ..base import Pipeline, PipelineInputConfig, extract_domain_inputs
+from ..base import (
+    Pipeline,
+    PipelineInputConfig,
+    bind_positional_inputs,
+    extract_domain_inputs,
+)
 from ..outputs import (
     ChessMove,
     ChessMovePredictionDataset,
@@ -57,7 +70,9 @@ DEFAULT_OUTLINES_PROMPT_TEMPLATE = textwrap.dedent(
 )
 
 
-class OutlinesDataset(torch.utils.data.Dataset):
+class _PromptDataset(torch.utils.data.Dataset):
+    """Prompts filled in from a template with the PGN, FEN and legal moves."""
+
     def __init__(
         self,
         pgns: list[str] | str,
@@ -167,7 +182,9 @@ WATERHORSE_CHESSGPT_GENERAL_POLICY_PROMPT_TEMPLATE = """In the following chess g
 Make the next move."""
 
 
-class ChessGPTGeneralPolicyDataset(torch.utils.data.Dataset):
+class _GeneralPolicyDataset(torch.utils.data.Dataset):
+    """ChessGPT general-policy prompts: a PGN header with ratings and time control."""
+
     def __init__(
         self,
         pgn: list[str] | str,
@@ -253,7 +270,9 @@ class ChessGPTGeneralPolicyDataset(torch.utils.data.Dataset):
         return list(prompts), list(histories), list(legal_moves_list)
 
 
-class OutlinesProbabilityTextPipeline(Pipeline):
+class OutlinesProbabilityPipeline(Pipeline):
+    """Ask any Outlines model for a JSON probability for each legal move."""
+
     def __init__(
         self,
         model: outlines.Model,
@@ -338,7 +357,7 @@ class OutlinesProbabilityTextPipeline(Pipeline):
             requested_workers=num_workers,
             parallel_threshold=parallel_threshold,
         )
-        dataset = OutlinesDataset(
+        dataset = _PromptDataset(
             pgns=pgn,
             prompts=prompt,
             should_shuffle_legal_moves=should_shuffle_legal_moves,
@@ -504,7 +523,9 @@ class OutlinesProbabilityTextPipeline(Pipeline):
 MAX_RETRIES = 5
 
 
-class OpenAIProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
+class OpenAIProbabilityPipeline(OutlinesProbabilityPipeline):
+    """:class:`OutlinesProbabilityPipeline` for a hosted OpenAI-compatible model."""
+
     def __init__(
         self,
         model_id: str,
@@ -531,7 +552,9 @@ class OpenAIProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
         return cls(model_id=pretrained_model_name_or_path, **kwargs)
 
 
-class AsyncOpenAIProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
+class AsyncOpenAIProbabilityPipeline(OutlinesProbabilityPipeline):
+    """:class:`OpenAIProbabilityPipeline` with concurrent requests."""
+
     def __init__(
         self,
         model_id: str,
@@ -554,11 +577,23 @@ class AsyncOpenAIProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
         return cls(model_id=pretrained_model_name_or_path, **kwargs)
 
 
+def _default_attn_implementation() -> str:
+    try:
+        import flash_attn  # noqa: F401 -- probe optional dependency availability
+    except ImportError:
+        return "sdpa"
+    if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
+        return "flash_attention_2"
+    return "sdpa"
+
+
 PAPER_CHESSGPT_TEMPLATE = "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n"
 NEWLINE_CHESSGPT_TEMPLATE = "{{ (messages|selectattr('role', 'equalto', 'system')|list|last).content|trim + '<|endoftext|>' if (messages|selectattr('role', 'equalto', 'system')|list) else '' }}\n{%- for message in messages -%}\n{%- if message['role'] == 'user' -%}\nHuman 0: {{ '\n'~message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- elif message['role'] == 'assistant' -%}\nHuman 1: {{ '\n'~message['content']|trim -}}\n{%- if not loop.last -%}\n<|endoftext|>\n{%- endif -%}\n{%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt and messages[-1]['role'] != 'assistant' -%}\n<|endoftext|>Human 1: {% endif -%}\n"
 
 
-class HFTransformersProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
+class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
+    """:class:`OutlinesProbabilityPipeline` for a local Transformers causal LM."""
+
     auto_batch_sizes = {"cpu": 4, "cuda": 8}
 
     def __init__(
@@ -576,6 +611,7 @@ class HFTransformersProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
         local_files_only: bool = False,
         model_kwargs: dict[str, tp.Any] | None = None,
         tokenizer_kwargs: dict[str, tp.Any] | None = None,
+        attn_implementation: str | None = "auto",
     ):
         model, tokenizer = self.load_model_and_tokenizer(
             model_id=model_id,
@@ -587,6 +623,7 @@ class HFTransformersProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
             local_files_only=local_files_only,
             model_kwargs=model_kwargs,
             tokenizer_kwargs=tokenizer_kwargs,
+            attn_implementation=attn_implementation,
         )
         if tokenizer.pad_token_id is None:
             tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -639,7 +676,14 @@ class HFTransformersProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
         local_files_only: bool = False,
         model_kwargs: dict[str, tp.Any] | None = None,
         tokenizer_kwargs: dict[str, tp.Any] | None = None,
+        attn_implementation: str | None = "auto",
     ):
+        """Load the tokenizer and model.
+
+        ``attn_implementation="auto"`` picks FlashAttention 2 when it is
+        installed and the GPU supports it, and SDPA otherwise; ``None`` leaves
+        the choice to Transformers.
+        """
         common_kwargs = {
             "revision": revision,
             "cache_dir": cache_dir,
@@ -650,18 +694,12 @@ class HFTransformersProbabilityTextPipeline(OutlinesProbabilityTextPipeline):
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_id, **resolved_tokenizer_kwargs
         )
-        try:
-            import flash_attn  # noqa: F401 -- probe optional dependency availability
-
-            if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
-                attn_implementation = "flash_attention_2"
-            else:
-                attn_implementation = "sdpa"
-        except ImportError:
-            attn_implementation = "sdpa"
+        if attn_implementation == "auto":
+            attn_implementation = _default_attn_implementation()
         resolved_model_kwargs = {**common_kwargs, **(model_kwargs or {})}
         resolved_model_kwargs.setdefault("dtype", dtype)
-        resolved_model_kwargs.setdefault("attn_implementation", attn_implementation)
+        if attn_implementation is not None:
+            resolved_model_kwargs.setdefault("attn_implementation", attn_implementation)
         model = transformers.AutoModelForCausalLM.from_pretrained(
             model_id, **resolved_model_kwargs
         ).to(device=device)
@@ -694,340 +732,14 @@ PGN_CONTINUATION_MOVE_REGEX = (
 )
 
 
-class HFTransformersSimpleTextPipeline(HFTransformersProbabilityTextPipeline):
-    """A simpler pipeline that just asks the model to write a move, without asking for probabilities.
-
-    This is useful for models that don't do well with the more complex prompt or output format, such as Waterhorse's ChessGPT models.
-
-    It's also better for efficient inference.
-
-    TODO (s8siu): Maybe refactor code to just use outlines.type.Chat?
-    Note: When using outlines < 1.2.10 and the tokenizer's chat template has not been set, the following call returns ['1. e4'] instead of ['2. c3'] as expected, and a lot of other weird outputs.
-        Issue: https://github.com/dottxt-ai/outlines/issues/1784
-        PR: https://github.com/dottxt-ai/outlines/pull/1789
-
-        >>> pipeline.generator.batch(['A friendly, helpful chat between some humans. Human 0: In the Sicilian Defense: Alapin Variation, the player as White takes a strategic approach by challenging Black’s setup early with 1. e4 c5, thus steering the game into less trodden paths and potentially catching their opponent off-guard.\n\nPGN: 1. e4 c5\n\nJust write your move.'])
-        ['2. c3']
-
-        Honestly, the actual prompt might be prompt_template(prompt_template(prompt, add_generation_prompt=False), add_generation_prompt=True), but it seems to work better than just applying the template once
-    """
-
-    def __init__(
-        self,
-        model_id: str,
-        device: str | torch.device = "cpu",
-        dtype: torch.dtype = torch.bfloat16,
-        temperature: float = 0.0,
-        prompt_template: str = WATERHORSE_CHESSGPT_PROMPT_TEMPLATE,
-        chat_template: str | None = PAPER_CHESSGPT_TEMPLATE,
-        input_config: PipelineInputConfig | None = None,
-        constraint: str = "regex",
-        **kwargs: tp.Any,
-    ):
-        if constraint not in {"regex", "choice"}:
-            raise ValueError("constraint must be either 'regex' or 'choice'")
-        self.constraint = constraint
-        # Import first so a missing extra reports how to install it.
-        import_optional("outlines", "text-generation")
-        outlines_version = importlib.metadata.version("outlines")
-        if chat_template is not None and packaging_version.parse(
-            outlines_version
-        ) < packaging_version.parse("1.2.10"):
-            prompt_template = jinja2.Template(chat_template).render(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "A friendly, helpful chat between some humans.",
-                    },
-                    {"role": "user", "content": prompt_template},
-                ],
-                add_generation_prompt=True,
-            )
-        super().__init__(
-            model_id=model_id,
-            device=device,
-            dtype=dtype,
-            temperature=temperature,
-            prompt_template=prompt_template,
-            chat_template=chat_template,
-            input_config=input_config,
-            **kwargs,
-        )
-
-    def get_generator_for_model(self, model: outlines.Model, *args, **kwargs):
-        if self.constraint == "choice":
-            return None
-        return outlines.Generator(
-            model,
-            outlines.types.Regex(NUMBERED_MOVE_REGEX),
-        )
-
-    @staticmethod
-    def legal_move_choices(
-        history: board_history.BoardHistory,
-        legal_moves: list[chess.Move],
-    ) -> list[str]:
-        """Return standalone, numbered legal moves accepted by this profile."""
-        board = history.active_board
-        dots = "." if board.turn == chess.WHITE else "..."
-        prefix = f"{board.fullmove_number}{dots} "
-        return [prefix + board.san(move) for move in legal_moves]
-
-    def forward_batch(
-        self,
-        consolidated_prompts: list[str],
-        histories: list[board_history.BoardHistory],
-        legal_moves: list[list[chess.Move]],
-    ):
-        if self.constraint == "regex":
-            return super().forward_batch(
-                consolidated_prompts,
-                histories,
-                legal_moves,
-            )
-
-        results = []
-        for prompt, history, moves in zip(consolidated_prompts, histories, legal_moves):
-            generator = outlines.Generator(
-                self.model,
-                outlines.types.Choice(self.legal_move_choices(history, moves)),
-            )
-            results.append(generator(prompt, temperature=self.temperature))
-        return results
-
-    @classmethod
-    def post_process_success(
-        cls,
-        response: str,
-        history: board_history.BoardHistory,
-        legal_moves: list[chess.Move],
-        return_histories: bool = False,
-    ):
-        try:
-            chess_response = ChessResponse(
-                moves=[ChessMove(move=response.strip(), probability=1.0)]
-            )
-        except json.JSONDecodeError:
-            logging.error("Failed to decode JSON object")
-            return cls.post_process_failure(
-                history, legal_moves, return_histories=return_histories
-            )
-        except AttributeError as e:
-            logging.error("Could not parse the response %s", response)
-            raise e
-        best_move_san, best_move_uci, preds_list = (
-            chess_response.to_best_moves_and_preds_list(
-                history.active_board, rescale_excess=True, fill_missing=True
-            )
-        )
-        if return_histories:
-            best_move = chess.Move.from_uci(best_move_uci)
-            history.append(best_move)
-        return LLMChessMovePrediction(
-            board_history=history if return_histories else None,
-            best_move_san=best_move_san,
-            best_move_uci=best_move_uci,
-            preds_list=preds_list,
-            raw_response=response,
-        )
-
-
-class HFTransformersSimpleTextPipelineOriginal(HFTransformersSimpleTextPipeline):
-    """A simpler pipeline that just asks the model to write a move, without asking for probabilities.
-
-    This is useful for models that don't do well with the more complex prompt or output format, such as Waterhorse's ChessGPT models.
-
-    It's also better for efficient inference.
-
-    Unlike HFTransformersSimpleTextPipeline, this class just applies the chat template once.
-    """
-
-    def __init__(
-        self,
-        model_id: str,
-        device: str | torch.device = "cpu",
-        dtype: torch.dtype = torch.bfloat16,
-        temperature: float = 0.0,
-        prompt_template: str = WATERHORSE_CHESSGPT_PROMPT_TEMPLATE_RAW,
-        chat_template: str | None = PAPER_CHESSGPT_TEMPLATE,
-        input_config: PipelineInputConfig | None = None,
-        **kwargs: tp.Any,
-    ):
-        super().__init__(
-            model_id=model_id,
-            device=device,
-            dtype=dtype,
-            temperature=temperature,
-            prompt_template=prompt_template,
-            chat_template=chat_template,
-            input_config=input_config,
-            **kwargs,
-        )
-
-
-class HFTransformersSimpleTextPipelineGeneralPolicy(HFTransformersSimpleTextPipeline):
-    def __init__(
-        self,
-        model_id: str,
-        device: str | torch.device = "cpu",
-        dtype: torch.dtype = torch.bfloat16,
-        temperature: float = 0.0,
-        prompt_template: str = WATERHORSE_CHESSGPT_GENERAL_POLICY_PROMPT_TEMPLATE,
-        chat_template: str | None = PAPER_CHESSGPT_TEMPLATE,
-        **kwargs: tp.Any,
-    ):
-        super().__init__(
-            model_id=model_id,
-            device=device,
-            dtype=dtype,
-            temperature=temperature,
-            prompt_template=prompt_template,
-            chat_template=chat_template,
-            **kwargs,
-        )
-
-    @staticmethod
-    def default_input_config() -> PipelineInputConfig:
-        return PipelineInputConfig.from_inputs(
-            required=("pgns", "time_controls", "white_elos", "black_elos")
-        )
-
-    def make_prediction(
-        self,
-        pgn: str | list[str],
-        time_control: str | list[str],
-        white_elo: int | list[int],
-        black_elo: int | list[int],
-        *args,
-        return_histories: bool = False,
-        tqdm_leave: bool = False,
-        batch_size: int = 16,
-        persistent_workers: bool = False,
-        num_workers: int | None = None,
-        parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
-        **kwargs,
-    ) -> ChessMovePredictionDataset:
-        if batch_size <= 0:
-            raise ValueError("batch_size must be positive")
-        if not hasattr(self, "input_config"):
-            self.input_config = self.default_input_config()
-        self.input_config.validate(
-            pgns=pgn,
-            time_controls=time_control,
-            white_elos=white_elo,
-            black_elos=black_elo,
-            **extract_domain_inputs(kwargs),
-        )
-        item_count = 1 if isinstance(pgn, str) else len(pgn)
-        resolved_workers = resolve_num_workers(
-            item_count,
-            requested_workers=num_workers,
-            parallel_threshold=parallel_threshold,
-        )
-        dataset = ChessGPTGeneralPolicyDataset(
-            pgn=pgn,
-            time_control=time_control,
-            white_elo=white_elo,
-            black_elo=black_elo,
-            prompt_template=self.prompt_template,
-            num_workers=resolved_workers,
-            parallel_threshold=parallel_threshold,
-        )
-        return self._make_predictions_from_dataset(
-            dataset,
-            return_histories=return_histories,
-            tqdm_leave=tqdm_leave,
-            batch_size=batch_size,
-            persistent_workers=persistent_workers,
-            num_workers=resolved_workers,
-            parallel_threshold=parallel_threshold,
-        )
-
-
 PGN_HEADER_PROMPT_TEMPLATE = "{prompt}\n\n{pgn}"
 END_OF_TEXT_PGN_HEADER_PROMPT_TEMPLATE = "{prompt}<|endoftext|>{pgn}"
-
-
-class HFTransformersSimpleTextPipelinePgnHeader(HFTransformersSimpleTextPipeline):
-    def __init__(
-        self,
-        model_id: str,
-        device: str | torch.device = "cpu",
-        dtype: torch.dtype = torch.bfloat16,
-        temperature: float = 0.0,
-        prompt_template: str = PGN_HEADER_PROMPT_TEMPLATE,
-        chat_template: str | None = None,
-        input_config: PipelineInputConfig | None = None,
-        **kwargs: tp.Any,
-    ):
-        super().__init__(
-            model_id=model_id,
-            device=device,
-            dtype=dtype,
-            temperature=temperature,
-            prompt_template=prompt_template,
-            chat_template=chat_template,
-            input_config=input_config,
-            **kwargs,
-        )
-
-    def get_generator_for_model(self, model: outlines.Model, *args, **kwargs):
-        if self.constraint == "choice":
-            return None
-        return outlines.Generator(
-            model,
-            outlines.types.Regex(PGN_CONTINUATION_MOVE_REGEX),
-        )
-
-    @staticmethod
-    def legal_move_choices(
-        history: board_history.BoardHistory,
-        legal_moves: list[chess.Move],
-    ) -> list[str]:
-        """Return the legal PGN-continuation variants allowed by the regex."""
-        board = history.active_board
-        dots = "." if board.turn == chess.WHITE else "..."
-        prefix = f"{board.fullmove_number}{dots} "
-        choices = []
-        for move in legal_moves:
-            san = board.san(move)
-            choices.extend((san, f" {san}", prefix + san, " " + prefix + san))
-        return choices
-
-
-class LocalHFTransformersSimpleTextPipelinePgnHeader(
-    HFTransformersSimpleTextPipelinePgnHeader
-):
-    def load_model_and_tokenizer(
-        self,
-        model_id: str,
-        device: str | torch.device = "cpu",
-        dtype: str | torch.dtype | None = None,
-        **kwargs: tp.Any,
-    ):
-        tokenizer_kwargs = kwargs.pop("tokenizer_kwargs", None) or {}
-        model_kwargs = kwargs.pop("model_kwargs", None) or {}
-        common_kwargs = {
-            key: value
-            for key, value in kwargs.items()
-            if key in {"revision", "cache_dir", "token", "local_files_only"}
-        }
-        resolved_tokenizer_kwargs = {**common_kwargs, **tokenizer_kwargs}
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            model_id, **resolved_tokenizer_kwargs
-        )
-        resolved_model_kwargs = {**common_kwargs, **model_kwargs}
-        resolved_model_kwargs.setdefault("dtype", dtype)
-        model = transformers.AutoModelForCausalLM.from_pretrained(
-            model_id, **resolved_model_kwargs
-        ).to(device=device)
-        return model, tokenizer
-
-
 DEFAULT_PGN_HEADER_WITH_TIME_CONTROL_AND_ELO = """[White "???"]\n[Black "???"]\n[WhiteElo "{white_elo}"]\n[BlackElo "{black_elo}"]\n[TimeControl "{time_control}"]\n\n"""
 
 
-class ChessGPTBaseDatasetWithTimeControlAndElo(torch.utils.data.Dataset):
+class _TimeControlAndEloDataset(torch.utils.data.Dataset):
+    """PGN-continuation prompts whose header gives the ratings and time control."""
+
     def __init__(
         self,
         pgns: list[str] | str,
@@ -1111,22 +823,265 @@ class ChessGPTBaseDatasetWithTimeControlAndElo(torch.utils.data.Dataset):
         return list(prompts), list(histories), list(legal_moves_list)
 
 
-class HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo(
-    HFTransformersSimpleTextPipelinePgnHeader
-):
+def numbered_move_choices(
+    history: board_history.BoardHistory,
+    legal_moves: list[chess.Move],
+) -> list[str]:
+    """Return each legal move as a numbered move, such as ``"2... Nc6"``."""
+    board = history.active_board
+    dots = "." if board.turn == chess.WHITE else "..."
+    prefix = f"{board.fullmove_number}{dots} "
+    return [prefix + board.san(move) for move in legal_moves]
+
+
+def pgn_continuation_move_choices(
+    history: board_history.BoardHistory,
+    legal_moves: list[chess.Move],
+) -> list[str]:
+    """Return every spelling of each legal move that continues a PGN.
+
+    These are the strings :data:`PGN_CONTINUATION_MOVE_REGEX` accepts: the move
+    with or without its number, and with or without a leading space.
+    """
+    board = history.active_board
+    dots = "." if board.turn == chess.WHITE else "..."
+    prefix = f"{board.fullmove_number}{dots} "
+    choices = []
+    for move in legal_moves:
+        san = board.san(move)
+        choices.extend((san, f" {san}", prefix + san, " " + prefix + san))
+    return choices
+
+
+class TextPromptFormat(str, enum.Enum):
+    """How :class:`TextGenerationPipeline` asks the model for a move.
+
+    Each format fixes the default prompt template and chat template, the
+    inputs the pipeline takes, and the move pattern the output must match.
+    """
+
+    CHAT = "chat"
+    """A ChessGPT chat turn: the prompt, the PGN, and "Just write your move."."""
+
+    CHAT_ORIGINAL = "chat_original"
+    """Like ``CHAT``, but the template holds only the user's message."""
+
+    GENERAL_POLICY = "general_policy"
+    """ChessGPT's general-policy prompt: a PGN header with both ratings and the
+    time control, for the side to move."""
+
+    PGN_HEADER = "pgn_header"
+    """Plain completion of the prompt followed by the PGN, for base models."""
+
+    PGN_HEADER_WITH_TIME_CONTROL_AND_ELO = "pgn_header_with_time_control_and_elo"
+    """Plain completion of a PGN whose header gives the ratings and time control."""
+
+
+_PROMPT_INPUTS = ("prompts",)
+_TIME_CONTROL_AND_ELO_INPUTS = ("time_controls", "white_elos", "black_elos")
+_CHAT_FORMATS = frozenset(
+    {
+        TextPromptFormat.CHAT,
+        TextPromptFormat.CHAT_ORIGINAL,
+        TextPromptFormat.GENERAL_POLICY,
+    }
+)
+_DEFAULT_PROMPT_TEMPLATES = {
+    TextPromptFormat.CHAT: WATERHORSE_CHESSGPT_PROMPT_TEMPLATE,
+    TextPromptFormat.CHAT_ORIGINAL: WATERHORSE_CHESSGPT_PROMPT_TEMPLATE_RAW,
+    TextPromptFormat.GENERAL_POLICY: WATERHORSE_CHESSGPT_GENERAL_POLICY_PROMPT_TEMPLATE,
+    TextPromptFormat.PGN_HEADER: PGN_HEADER_PROMPT_TEMPLATE,
+    # Unused: the header comes from DEFAULT_PGN_HEADER_WITH_TIME_CONTROL_AND_ELO.
+    TextPromptFormat.PGN_HEADER_WITH_TIME_CONTROL_AND_ELO: PGN_HEADER_PROMPT_TEMPLATE,
+}
+
+
+@dataclasses.dataclass(frozen=True)
+class TextGenerationPipelineConfig:
+    """Options for :class:`TextGenerationPipeline`.
+
+    ``constraint="regex"`` constrains generation to the format's move pattern;
+    ``"choice"`` restricts it to the legal moves in each position, one
+    generation call per position.
+    """
+
+    prompt_format: TextPromptFormat = TextPromptFormat.CHAT
+    constraint: tp.Literal["regex", "choice"] = "regex"
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.prompt_format, TextPromptFormat):
+            try:
+                object.__setattr__(
+                    self, "prompt_format", TextPromptFormat(self.prompt_format)
+                )
+            except ValueError as exc:
+                raise ValueError(
+                    f"Unsupported text prompt format: {self.prompt_format!r}"
+                ) from exc
+        if self.constraint not in {"regex", "choice"}:
+            raise ValueError("constraint must be either 'regex' or 'choice'")
+
+    @property
+    def input_names(self) -> tuple[str, ...]:
+        """The inputs after the PGNs, in the order they may be passed positionally."""
+        if self.prompt_format in {
+            TextPromptFormat.GENERAL_POLICY,
+            TextPromptFormat.PGN_HEADER_WITH_TIME_CONTROL_AND_ELO,
+        }:
+            return _TIME_CONTROL_AND_ELO_INPUTS
+        return _PROMPT_INPUTS
+
+    @property
+    def input_config(self) -> PipelineInputConfig:
+        return PipelineInputConfig.from_inputs(required=("pgns", *self.input_names))
+
+    @property
+    def default_prompt_template(self) -> str:
+        return _DEFAULT_PROMPT_TEMPLATES[self.prompt_format]
+
+    @property
+    def default_chat_template(self) -> str | None:
+        """ChessGPT's chat template for chat formats; none for completion."""
+        return PAPER_CHESSGPT_TEMPLATE if self.prompt_format in _CHAT_FORMATS else None
+
+    @property
+    def move_regex(self) -> str:
+        if self.prompt_format in _CHAT_FORMATS:
+            return NUMBERED_MOVE_REGEX
+        return PGN_CONTINUATION_MOVE_REGEX
+
+
+_FORMAT_DEFAULT: tp.Any = object()
+
+
+class TextGenerationPipeline(TransformersProbabilityPipeline):
+    """Ask a causal language model, such as ChessGPT, to write the next move.
+
+    Unlike :class:`TransformersProbabilityPipeline`, the model writes a single
+    move rather than a JSON distribution, which suits models such as ChessGPT
+    and is faster. :class:`TextGenerationPipelineConfig` selects the prompt
+    format and how generation is constrained.
+
+    TODO (s8siu): Maybe refactor code to just use outlines.type.Chat?
+    Note: When using outlines < 1.2.10 and the tokenizer's chat template has not been set, the following call returns ['1. e4'] instead of ['2. c3'] as expected, and a lot of other weird outputs.
+        Issue: https://github.com/dottxt-ai/outlines/issues/1784
+        PR: https://github.com/dottxt-ai/outlines/pull/1789
+
+        >>> pipeline.generator.batch(['A friendly, helpful chat between some humans. Human 0: In the Sicilian Defense: Alapin Variation, the player as White takes a strategic approach by challenging Black’s setup early with 1. e4 c5, thus steering the game into less trodden paths and potentially catching their opponent off-guard.\n\nPGN: 1. e4 c5\n\nJust write your move.'])
+        ['2. c3']
+
+        Honestly, the actual prompt might be prompt_template(prompt_template(prompt, add_generation_prompt=False), add_generation_prompt=True), but it seems to work better than just applying the template once
+    """
+
+    def __init__(
+        self,
+        model_id: str,
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype | None = torch.bfloat16,
+        temperature: float = 0.0,
+        prompt_template: str | None = None,
+        chat_template: str | None = _FORMAT_DEFAULT,
+        input_config: PipelineInputConfig | None = None,
+        constraint: tp.Literal["regex", "choice"] | None = None,
+        pipeline_config: TextGenerationPipelineConfig | None = None,
+        **kwargs: tp.Any,
+    ):
+        if pipeline_config is None:
+            pipeline_config = TextGenerationPipelineConfig()
+        if constraint is not None:
+            pipeline_config = dataclasses.replace(
+                pipeline_config, constraint=constraint
+            )
+        # get_generator_for_model, called by the base class, reads the config.
+        self.pipeline_config = pipeline_config
+        if prompt_template is None:
+            prompt_template = pipeline_config.default_prompt_template
+        if chat_template is _FORMAT_DEFAULT:
+            chat_template = pipeline_config.default_chat_template
+        # Import first so a missing extra reports how to install it.
+        import_optional("outlines", "text-generation")
+        outlines_version = importlib.metadata.version("outlines")
+        if chat_template is not None and packaging_version.parse(
+            outlines_version
+        ) < packaging_version.parse("1.2.10"):
+            prompt_template = jinja2.Template(chat_template).render(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "A friendly, helpful chat between some humans.",
+                    },
+                    {"role": "user", "content": prompt_template},
+                ],
+                add_generation_prompt=True,
+            )
+        super().__init__(
+            model_id=model_id,
+            device=device,
+            dtype=dtype,
+            temperature=temperature,
+            prompt_template=prompt_template,
+            chat_template=chat_template,
+            input_config=input_config or pipeline_config.input_config,
+            **kwargs,
+        )
+
     @staticmethod
     def default_input_config() -> PipelineInputConfig:
-        return PipelineInputConfig.from_inputs(
-            required=("pgns", "time_controls", "white_elos", "black_elos")
+        return TextGenerationPipelineConfig().input_config
+
+    @property
+    def constraint(self) -> str:
+        return self.pipeline_config.constraint
+
+    def get_generator_for_model(self, model: outlines.Model, *args, **kwargs):
+        if self.constraint == "choice":
+            return None
+        return outlines.Generator(
+            model,
+            outlines.types.Regex(self.pipeline_config.move_regex),
         )
+
+    def legal_move_choices(
+        self,
+        history: board_history.BoardHistory,
+        legal_moves: list[chess.Move],
+    ) -> list[str]:
+        """Return the outputs ``constraint="choice"`` allows for a position."""
+        if self.pipeline_config.prompt_format in _CHAT_FORMATS:
+            return numbered_move_choices(history, legal_moves)
+        return pgn_continuation_move_choices(history, legal_moves)
+
+    def forward_batch(
+        self,
+        consolidated_prompts: list[str],
+        histories: list[board_history.BoardHistory],
+        legal_moves: list[list[chess.Move]],
+    ):
+        if self.constraint == "regex":
+            return super().forward_batch(
+                consolidated_prompts,
+                histories,
+                legal_moves,
+            )
+
+        results = []
+        for prompt, history, moves in zip(consolidated_prompts, histories, legal_moves):
+            generator = outlines.Generator(
+                self.model,
+                outlines.types.Choice(self.legal_move_choices(history, moves)),
+            )
+            results.append(generator(prompt, temperature=self.temperature))
+        return results
 
     def make_prediction(
         self,
         pgn: str | list[str],
-        time_control: list[str] | str,
-        white_elo: list[int] | int,
-        black_elo: list[int] | int,
-        *args,
+        *inputs: tp.Any,
+        prompt: str | list[str] | None = None,
+        time_control: str | list[str] | None = None,
+        white_elo: int | list[int] | None = None,
+        black_elo: int | list[int] | None = None,
+        should_shuffle_legal_moves: bool = False,
         return_histories: bool = False,
         tqdm_leave: bool = False,
         batch_size: int = 16,
@@ -1135,16 +1090,28 @@ class HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo(
         parallel_threshold: int = DEFAULT_PARALLEL_THRESHOLD,
         **kwargs,
     ) -> ChessMovePredictionDataset:
+        """Predict a move for each PGN.
+
+        The other inputs depend on the prompt format: ``prompt`` for the chat
+        and ``PGN_HEADER`` formats; ``time_control``, ``white_elo`` and
+        ``black_elo`` for the others. They may also be passed positionally
+        after the PGNs, in that order.
+        """
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
-        if not hasattr(self, "input_config"):
-            self.input_config = self.default_input_config()
+        values = bind_positional_inputs(
+            self.pipeline_config.input_names,
+            inputs,
+            {
+                "prompts": prompt,
+                "time_controls": time_control,
+                "white_elos": white_elo,
+                "black_elos": black_elo,
+            },
+        )
+        provided = {name: value for name, value in values.items() if value is not None}
         self.input_config.validate(
-            pgns=pgn,
-            time_controls=time_control,
-            white_elos=white_elo,
-            black_elos=black_elo,
-            **extract_domain_inputs(kwargs),
+            pgns=pgn, **provided, **extract_domain_inputs(kwargs)
         )
         item_count = 1 if isinstance(pgn, str) else len(pgn)
         resolved_workers = resolve_num_workers(
@@ -1152,14 +1119,43 @@ class HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo(
             requested_workers=num_workers,
             parallel_threshold=parallel_threshold,
         )
-        dataset = ChessGPTBaseDatasetWithTimeControlAndElo(
-            pgns=pgn,
-            time_control=time_control,
-            white_elo=white_elo,
-            black_elo=black_elo,
-            num_workers=resolved_workers,
-            parallel_threshold=parallel_threshold,
-        )
+        prompt_format = self.pipeline_config.prompt_format
+        if should_shuffle_legal_moves and self.pipeline_config.input_names != (
+            _PROMPT_INPUTS
+        ):
+            raise ValueError(
+                "should_shuffle_legal_moves is only supported by formats "
+                "that take a prompt"
+            )
+        common = {
+            "num_workers": resolved_workers,
+            "parallel_threshold": parallel_threshold,
+        }
+        if prompt_format == TextPromptFormat.GENERAL_POLICY:
+            dataset = _GeneralPolicyDataset(
+                pgn=pgn,
+                time_control=values["time_controls"],
+                white_elo=values["white_elos"],
+                black_elo=values["black_elos"],
+                prompt_template=self.prompt_template,
+                **common,
+            )
+        elif prompt_format == TextPromptFormat.PGN_HEADER_WITH_TIME_CONTROL_AND_ELO:
+            dataset = _TimeControlAndEloDataset(
+                pgns=pgn,
+                time_control=values["time_controls"],
+                white_elo=values["white_elos"],
+                black_elo=values["black_elos"],
+                **common,
+            )
+        else:
+            dataset = _PromptDataset(
+                pgns=pgn,
+                prompts=values["prompts"],
+                should_shuffle_legal_moves=should_shuffle_legal_moves,
+                prompt_template=self.prompt_template,
+                **common,
+            )
         return self._make_predictions_from_dataset(
             dataset,
             return_histories=return_histories,
@@ -1170,30 +1166,59 @@ class HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo(
             parallel_threshold=parallel_threshold,
         )
 
+    @classmethod
+    def post_process_success(
+        cls,
+        response: str,
+        history: board_history.BoardHistory,
+        legal_moves: list[chess.Move],
+        return_histories: bool = False,
+    ):
+        try:
+            chess_response = ChessResponse(
+                moves=[ChessMove(move=response.strip(), probability=1.0)]
+            )
+        except AttributeError:
+            logging.error("Could not parse the response %s", response)
+            raise
+        best_move_san, best_move_uci, preds_list = (
+            chess_response.to_best_moves_and_preds_list(
+                history.active_board, rescale_excess=True, fill_missing=True
+            )
+        )
+        if return_histories:
+            best_move = chess.Move.from_uci(best_move_uci)
+            history.append(best_move)
+        return LLMChessMovePrediction(
+            board_history=history if return_histories else None,
+            best_move_san=best_move_san,
+            best_move_uci=best_move_uci,
+            preds_list=preds_list,
+            raw_response=response,
+        )
+
 
 __all__ = [
-    "ChessGPTGeneralPolicyDataset",
-    "ChessGPTBaseDatasetWithTimeControlAndElo",
+    "AsyncOpenAIProbabilityPipeline",
     "DEFAULT_BASIC_PROMPT_TEMPLATE",
     "DEFAULT_OUTLINES_PROMPT_TEMPLATE",
     "DEFAULT_PGN_HEADER_WITH_TIME_CONTROL_AND_ELO",
     "END_OF_TEXT_PGN_HEADER_PROMPT_TEMPLATE",
-    "AsyncOpenAIProbabilityTextPipeline",
-    "HFTransformersProbabilityTextPipeline",
-    "HFTransformersSimpleTextPipeline",
-    "HFTransformersSimpleTextPipelineGeneralPolicy",
-    "HFTransformersSimpleTextPipelineOriginal",
-    "HFTransformersSimpleTextPipelinePgnHeader",
-    "HFTransformersSimpleTextPipelineCompletionWithTimeControlAndElo",
-    "LocalHFTransformersSimpleTextPipelinePgnHeader",
     "NEWLINE_CHESSGPT_TEMPLATE",
-    "OpenAIProbabilityTextPipeline",
-    "OutlinesDataset",
-    "OutlinesProbabilityTextPipeline",
+    "NUMBERED_MOVE_REGEX",
+    "OpenAIProbabilityPipeline",
+    "OutlinesProbabilityPipeline",
     "PAPER_CHESSGPT_TEMPLATE",
+    "PGN_CONTINUATION_MOVE_REGEX",
     "PGN_HEADER_PROMPT_TEMPLATE",
+    "TextGenerationPipeline",
+    "TextGenerationPipelineConfig",
+    "TextPromptFormat",
+    "TransformersProbabilityPipeline",
     "WATERHORSE_CHESSGPT_GENERAL_POLICY_PROMPT_TEMPLATE",
     "WATERHORSE_CHESSGPT_PROMPT_TEMPLATE",
     "WATERHORSE_CHESSGPT_PROMPT_TEMPLATE_NEWLINE",
     "WATERHORSE_CHESSGPT_PROMPT_TEMPLATE_RAW",
+    "numbered_move_choices",
+    "pgn_continuation_move_choices",
 ]
