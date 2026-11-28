@@ -82,10 +82,11 @@ pipeline = AutoPipeline.from_pretrained(
 )
 ```
 
-Multiple-choice mode generates one position at a time, because Outlines
-applies one constraint to a whole batch and each position has different legal
-moves. `batch_size` then only sets how many prompts are prepared together,
-and a value above 1 warns once; `batch_size="auto"` uses 1.
+Multiple-choice mode batches positions, each restricted to its own legal
+moves, and batches prompts of similar length together. Both are experimental
+and on by default; see the
+[ChessGPT page](https://github.com/shermansiu/chessnets/blob/main/docs/models/chessgpt.md)
+for how to turn them off to reproduce earlier results.
 
 ## Playing
 

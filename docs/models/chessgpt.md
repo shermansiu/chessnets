@@ -17,20 +17,6 @@ pipeline = AutoPipeline.from_pretrained(
 )
 ```
 
-Multiple-choice mode generates one position at a time, because Outlines
-applies one constraint to a whole batch and each position has different legal
-moves. `batch_size` then only sets how many prompts are prepared together,
-and a value above 1 warns once; `batch_size="auto"` uses 1.
-
-`batched_choice=True` generates a whole batch at once instead,
-with each position restricted to its own legal moves. With ChessGPT-base on an
-RTX 5090 it was 3.6× faster at `batch_size=16` and 3.9× at 32. On 256
-positions it picked the same move as unbatched generation in 249 to 250,
-depending on the batch size. Where it differed, the two moves' scores were
-equal or one bfloat16 rounding step apart, and padding tipped them the other
-way. It is experimental: results can differ slightly from unbatched runs and
-between batch sizes.
-
 - **Names:** `Waterhorse/chessgpt-base-v1`, `Waterhorse/chessgpt-chat-v1_simple`
 - **Upstream:** [waterhorse1/ChessGPT](https://github.com/waterhorse1/ChessGPT)
 - **Paper:** [arXiv:2306.09200](https://arxiv.org/abs/2306.09200)
@@ -68,6 +54,52 @@ predictions = pipeline.make_prediction("1. e4 e5 2. Nf3", prompt="")
 The same extra also provides Carlini-style PGN prompting and
 OpenAI-compatible endpoints. For the prompting format, credit Nicholas
 Carlini's [2023 experiments](https://nicholas.carlini.com/writing/2023/chess-llm.html).
+
+## Faster generation
+
+Two experimental options, both on by default, make generation faster:
+
+- `batched_choice` generates a whole batch at once with `constraint="choice"`,
+  each position restricted to its own legal moves. Outlines applies one
+  constraint to a whole batch, so ChessNets keeps a separate one for each row.
+  It has no effect with `constraint="regex"`.
+- `sort_by_length` batches prompts of similar length together, longest first,
+  so less of each batch is padding. Predictions still come back in the input
+  order. It applies to every local ChessGPT profile, but helps the JSON
+  `Waterhorse/chessgpt-chat-v1` profile little (about 1.05×), since generating
+  its long answers takes most of the time.
+
+With ChessGPT-base, `constraint="choice"`, on an RTX 5090 and 256 positions:
+
+| Run | Speed vs one at a time | Same move as one at a time |
+|---|---|---|
+| `batched_choice`, `batch_size=16` | 3.8× | 250/256 |
+| `batched_choice`, `batch_size=32` | 4.2× | 249/256 |
+| Both options, `batch_size=16` | 4.2× | 251/256 |
+| Both options, `batch_size=32` | 4.6× | 249/256 |
+
+Padding changes the model's numbers slightly. Every differing move was a
+near-tie: the two moves' scores were equal, or one bfloat16 rounding step
+apart, where the answers parted. So results can differ slightly from runs
+without these options and between batch sizes. To reproduce results made
+before they existed, turn them off:
+
+```python
+pipeline = AutoPipeline.from_pretrained(
+    "Waterhorse/chessgpt-base-v1",
+    device="cuda",
+    constraint="choice",
+    batched_choice=False,
+    sort_by_length=False,
+)
+```
+
+With `batched_choice=False`, `constraint="choice"` generates one position at a
+time. `batch_size` then only sets how many prompts are prepared together, a
+value above 1 warns once, and `batch_size="auto"` uses 1.
+
+[`benchmarks/text_generation/benchmark_choice_batching.py`](https://github.com/shermansiu/chessnets/blob/main/benchmarks/text_generation/benchmark_choice_batching.py)
+measures this for other models and positions.
 
 ## Citation
 
