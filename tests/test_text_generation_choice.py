@@ -190,21 +190,19 @@ def test_shuffled_legal_moves_are_the_same_in_every_run():
     )
 
 
-def test_experimental_batched_choice_needs_the_choice_constraint():
-    with pytest.raises(ValueError, match="experimental_batched_choice"):
-        text.TextGenerationPipelineConfig(experimental_batched_choice=True)
-    config = text.TextGenerationPipelineConfig(
-        constraint="choice", experimental_batched_choice=True
-    )
-    assert config.experimental_batched_choice
+def test_batched_choice_needs_the_choice_constraint():
+    with pytest.raises(ValueError, match="batched_choice"):
+        text.TextGenerationPipelineConfig(batched_choice=True)
+    config = text.TextGenerationPipelineConfig(constraint="choice", batched_choice=True)
+    assert config.batched_choice
 
 
-def test_experimental_batched_choice_generates_the_batch_in_one_call():
+def test_batched_choice_generates_the_batch_in_one_call():
     pipeline = object.__new__(text.TextGenerationPipeline)
     pipeline.pipeline_config = text.TextGenerationPipelineConfig(
         prompt_format="pgn_header",
         constraint="choice",
-        experimental_batched_choice=True,
+        batched_choice=True,
     )
     pipeline.temperature = 0.25
     calls = []

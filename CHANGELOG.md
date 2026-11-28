@@ -14,7 +14,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   of memory, and keeps the size that fits; `last_batch_size` records it.
 - `TextGenerationPipeline`, configured by `TextGenerationPipelineConfig`
   (`prompt_format` and `constraint`), for any causal language model.
-- Experimental: `experimental_batched_choice=True` with `constraint="choice"`
+- Experimental: `batched_choice=True` with `constraint="choice"`
   generates a whole batch at once, each position restricted to its own legal
   moves (about 3.5× faster for ChessGPT on an RTX 5090). Padding can change a
   move where two are tied at the model's precision, so results can differ

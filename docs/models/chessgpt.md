@@ -22,7 +22,7 @@ applies one constraint to a whole batch and each position has different legal
 moves. `batch_size` then only sets how many prompts are prepared together,
 and a value above 1 warns once; `batch_size="auto"` uses 1.
 
-`experimental_batched_choice=True` generates a whole batch at once instead,
+`batched_choice=True` generates a whole batch at once instead,
 with each position restricted to its own legal moves. With ChessGPT-base on an
 RTX 5090 it was 3.6× faster at `batch_size=16` and 3.9× at 32. On 256
 positions it picked the same move as unbatched generation in 249 to 250,

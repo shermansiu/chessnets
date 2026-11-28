@@ -947,7 +947,7 @@ class TextGenerationPipelineConfig:
     position at a time and ignores ``batch_size`` beyond preparing prompts
     (``batch_size="auto"`` uses 1).
 
-    ``experimental_batched_choice=True`` instead generates a whole batch at
+    ``batched_choice=True`` instead generates a whole batch at
     once with ``"choice"``, constraining each row to its own legal moves.
     Padding changes the model's numbers slightly, so a move can differ from
     an unbatched run where two moves are tied, or nearly tied, at the model's
@@ -956,7 +956,7 @@ class TextGenerationPipelineConfig:
 
     prompt_format: TextPromptFormat = TextPromptFormat.CHAT
     constraint: tp.Literal["regex", "choice"] = "regex"
-    experimental_batched_choice: bool = False
+    batched_choice: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.prompt_format, TextPromptFormat):
@@ -970,8 +970,8 @@ class TextGenerationPipelineConfig:
                 ) from exc
         if self.constraint not in {"regex", "choice"}:
             raise ValueError("constraint must be either 'regex' or 'choice'")
-        if self.experimental_batched_choice and self.constraint != "choice":
-            raise ValueError('experimental_batched_choice needs constraint="choice"')
+        if self.batched_choice and self.constraint != "choice":
+            raise ValueError('batched_choice needs constraint="choice"')
 
     @property
     def input_names(self) -> tuple[str, ...]:
@@ -1046,7 +1046,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
         input_config: PipelineInputConfig | None = None,
         constraint: tp.Literal["regex", "choice"] | None = None,
         pipeline_config: TextGenerationPipelineConfig | None = None,
-        experimental_batched_choice: bool | None = None,
+        batched_choice: bool | None = None,
         **kwargs: tp.Any,
     ):
         if pipeline_config is None:
@@ -1055,16 +1055,16 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             pipeline_config = dataclasses.replace(
                 pipeline_config, constraint=constraint
             )
-        if experimental_batched_choice is not None:
+        if batched_choice is not None:
             pipeline_config = dataclasses.replace(
                 pipeline_config,
-                experimental_batched_choice=experimental_batched_choice,
+                batched_choice=batched_choice,
             )
         # get_generator_for_model, called by the base class, reads the config.
         self.pipeline_config = pipeline_config
         if (
             pipeline_config.constraint == "choice"
-            and not pipeline_config.experimental_batched_choice
+            and not pipeline_config.batched_choice
         ):
             # Generation runs one position at a time, so larger batches only
             # prepare more prompts together.
@@ -1127,7 +1127,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             self.legal_move_choices(history, moves)
             for history, moves in zip(histories, legal_moves)
         ]
-        if self.pipeline_config.experimental_batched_choice:
+        if self.pipeline_config.batched_choice:
             return self._batched_choice_generator(choices).batch(
                 consolidated_prompts, temperature=self.temperature
             )
@@ -1188,7 +1188,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             "Outlines can't constrain each row of a batch to different moves; "
             f"batch_size={batch_size} only sets how many prompts are prepared "
             "together. Pass batch_size=1 to silence this warning, or try "
-            "experimental_batched_choice=True to generate batches at once.",
+            "batched_choice=True to generate batches at once.",
             UserWarning,
             stacklevel=3,
         )
@@ -1219,10 +1219,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
         """
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
-        if (
-            self.constraint == "choice"
-            and not self.pipeline_config.experimental_batched_choice
-        ):
+        if self.constraint == "choice" and not self.pipeline_config.batched_choice:
             self._warn_choice_batch_size(batch_size)
         values = bind_positional_inputs(
             self.pipeline_config.input_names,
