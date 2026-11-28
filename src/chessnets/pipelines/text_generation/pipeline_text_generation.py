@@ -291,6 +291,9 @@ class _GeneralPolicyDataset(torch.utils.data.Dataset):
 class OutlinesProbabilityPipeline(Pipeline):
     """Ask any Outlines model for a JSON probability for each legal move."""
 
+    sort_by_length: bool = False
+    """Batch prompts of similar length together; see :meth:`_longest_first`."""
+
     def __init__(
         self,
         model: outlines.Model,
@@ -404,7 +407,55 @@ class OutlinesProbabilityPipeline(Pipeline):
         num_workers: int | None,
         parallel_threshold: int,
     ) -> ChessMovePredictionDataset:
-        """Run the shared batched inference and post-processing path."""
+        """Run the shared batched inference and post-processing path.
+
+        With :attr:`sort_by_length`, batches are formed from prompts of similar
+        length, and the predictions are returned in the dataset's order.
+        """
+        options = dict(
+            return_histories=return_histories,
+            tqdm_leave=tqdm_leave,
+            batch_size=batch_size,
+            persistent_workers=persistent_workers,
+            num_workers=num_workers,
+            parallel_threshold=parallel_threshold,
+        )
+        if not self.sort_by_length or len(dataset) <= 1:
+            return self._predict_in_order(dataset, **options)
+        order = self._longest_first(dataset)
+        result = self._predict_in_order(_ReorderedDataset(dataset, order), **options)
+        predictions = [None] * len(order)
+        for position, prediction in zip(order, result.predictions):
+            predictions[position] = prediction
+        result.predictions = predictions
+        return result
+
+    def _longest_first(self, dataset: torch.utils.data.Dataset) -> list[int]:
+        """Return dataset indices ordered by prompt length in tokens, longest first.
+
+        Batching prompts of similar length means less of each batch is padding.
+        Ties keep the input order, and longest first means a batch size that
+        doesn't fit in memory fails on the first batch.
+        """
+        prompts = [dataset[index][0] for index in range(len(dataset))]
+        tokenizer = getattr(self.model, "hf_tokenizer", None)
+        if tokenizer is not None:
+            lengths = [len(ids) for ids in tokenizer(prompts)["input_ids"]]
+        else:
+            lengths = [len(prompt) for prompt in prompts]
+        return sorted(range(len(prompts)), key=lambda index: -lengths[index])
+
+    def _predict_in_order(
+        self,
+        dataset: torch.utils.data.Dataset,
+        *,
+        return_histories: bool,
+        tqdm_leave: bool,
+        batch_size: int,
+        persistent_workers: bool,
+        num_workers: int | None,
+        parallel_threshold: int,
+    ) -> ChessMovePredictionDataset:
         raw_outputs = []
         for consolidated_prompts, histories, all_legal_moves in progress(
             iter_dataset_batches(
@@ -642,6 +693,11 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
     user message, as :func:`render_chat_prompt_template` does. The tokenizer
     is given no chat template, so Outlines never applies one again; Outlines
     1.2.10 and later otherwise wrap every prompt in it.
+
+    ``sort_by_length=True`` (experimental) batches prompts of similar length
+    together, longest first, so less of each batch is padding; predictions
+    come back in the input order. Batches change, so a few results can differ
+    slightly from unsorted runs.
     """
 
     auto_batch_sizes = {"cpu": 4, "cuda": 8}
@@ -662,7 +718,9 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
         model_kwargs: dict[str, tp.Any] | None = None,
         tokenizer_kwargs: dict[str, tp.Any] | None = None,
         attn_implementation: str | None = "auto",
+        sort_by_length: bool = False,
     ):
+        self.sort_by_length = sort_by_length
         model, tokenizer = self.load_model_and_tokenizer(
             model_id=model_id,
             device=device,
@@ -1106,6 +1164,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             prompt_template=prompt_template,
             chat_template=chat_template,
             input_config=input_config or pipeline_config.input_config,
+            sort_by_length=pipeline_config.sort_by_length,
             **kwargs,
         )
 
@@ -1303,11 +1362,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
                 prompt_template=self.prompt_template,
                 **common,
             )
-        order = None
-        if self.pipeline_config.sort_by_length and len(dataset) > 1:
-            order = self._longest_first(dataset)
-            dataset = _ReorderedDataset(dataset, order)
-        result = self._make_predictions_from_dataset(
+        return self._make_predictions_from_dataset(
             dataset,
             return_histories=return_histories,
             tqdm_leave=tqdm_leave,
@@ -1316,26 +1371,6 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             num_workers=resolved_workers,
             parallel_threshold=parallel_threshold,
         )
-        if order is not None:
-            predictions = [None] * len(order)
-            for position, prediction in zip(order, result.predictions):
-                predictions[position] = prediction
-            result.predictions = predictions
-        return result
-
-    def _longest_first(self, dataset: torch.utils.data.Dataset) -> list[int]:
-        """Return dataset indices ordered by prompt length in tokens, longest first.
-
-        Ties keep the input order. Longest first also means a batch size that
-        doesn't fit in memory fails on the first batch.
-        """
-        prompts = [dataset[index][0] for index in range(len(dataset))]
-        tokenizer = getattr(self.model, "hf_tokenizer", None)
-        if tokenizer is not None:
-            lengths = [len(ids) for ids in tokenizer(prompts)["input_ids"]]
-        else:
-            lengths = [len(prompt) for prompt in prompts]
-        return sorted(range(len(prompts)), key=lambda index: -lengths[index])
 
     @classmethod
     def post_process_success(

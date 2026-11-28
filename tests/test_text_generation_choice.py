@@ -240,6 +240,8 @@ def test_sort_by_length_batches_longest_first_and_keeps_input_order():
     pipeline.input_config = pipeline.pipeline_config.input_config
     pipeline.prompt_template = pipeline.pipeline_config.default_prompt_template
     pipeline.model = types.SimpleNamespace()  # no tokenizer: sort by characters
+    # Set by TransformersProbabilityPipeline.__init__, which isn't run here.
+    pipeline.sort_by_length = True
     batches = []
 
     def forward_batch(prompts, histories, legal_moves):
