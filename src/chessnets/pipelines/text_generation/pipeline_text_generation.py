@@ -694,10 +694,11 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
     is given no chat template, so Outlines never applies one again; Outlines
     1.2.10 and later otherwise wrap every prompt in it.
 
-    ``sort_by_length=True`` (experimental) batches prompts of similar length
-    together, longest first, so less of each batch is padding; predictions
-    come back in the input order. Batches change, so a few results can differ
-    slightly from unsorted runs.
+    ``sort_by_length`` (experimental, on by default) batches prompts of
+    similar length together, longest first, so less of each batch is padding;
+    predictions come back in the input order. Batches change, so a few results
+    can differ slightly from unsorted runs; pass ``sort_by_length=False`` to
+    reproduce results made before it existed.
     """
 
     auto_batch_sizes = {"cpu": 4, "cuda": 8}
@@ -718,7 +719,7 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
         model_kwargs: dict[str, tp.Any] | None = None,
         tokenizer_kwargs: dict[str, tp.Any] | None = None,
         attn_implementation: str | None = "auto",
-        sort_by_length: bool = False,
+        sort_by_length: bool = True,
     ):
         self.sort_by_length = sort_by_length
         model, tokenizer = self.load_model_and_tokenizer(
@@ -1015,27 +1016,29 @@ class TextGenerationPipelineConfig:
     """Options for :class:`TextGenerationPipeline`.
 
     ``constraint="regex"`` constrains generation to the format's move pattern;
-    ``"choice"`` restricts it to the legal moves in each position. Outlines
-    applies one constraint to a whole batch, so ``"choice"`` generates one
-    position at a time and ignores ``batch_size`` beyond preparing prompts
-    (``batch_size="auto"`` uses 1).
+    ``"choice"`` restricts it to the legal moves in each position.
 
-    ``batched_choice=True`` (experimental) instead generates a whole batch
-    at once with ``"choice"``, constraining each row to its own legal moves.
-    Padding changes the model's numbers slightly, so a move can differ from
-    an unbatched run where two moves are tied, or nearly tied, at the model's
-    precision.
+    Two experimental options, on by default, make generation faster:
 
-    ``sort_by_length=True`` (experimental) batches prompts of similar length
-    together, longest first, so less of each batch is padding; predictions
-    come back in the input order. Batches change, so for the same reason a
-    few moves can differ from unsorted runs.
+    - ``batched_choice`` generates a whole batch at once with ``"choice"``,
+      constraining each row to its own legal moves. It has no effect with
+      ``"regex"``. Without it, ``"choice"`` generates one position at a time,
+      because Outlines applies one constraint to a whole batch, and ignores
+      ``batch_size`` beyond preparing prompts (``batch_size="auto"`` uses 1).
+    - ``sort_by_length`` batches prompts of similar length together, longest
+      first, so less of each batch is padding; predictions come back in the
+      input order.
+
+    Both change how prompts are padded, which changes the model's numbers
+    slightly, so a move can differ from a run without them where two moves are
+    tied, or nearly tied, at the model's precision. Turn both off to reproduce
+    results made before they existed.
     """
 
     prompt_format: TextPromptFormat = TextPromptFormat.CHAT
     constraint: tp.Literal["regex", "choice"] = "regex"
-    batched_choice: bool = False
-    sort_by_length: bool = False
+    batched_choice: bool = True
+    sort_by_length: bool = True
 
     def __post_init__(self) -> None:
         if not isinstance(self.prompt_format, TextPromptFormat):
@@ -1049,8 +1052,6 @@ class TextGenerationPipelineConfig:
                 ) from exc
         if self.constraint not in {"regex", "choice"}:
             raise ValueError("constraint must be either 'regex' or 'choice'")
-        if self.batched_choice and self.constraint != "choice":
-            raise ValueError('batched_choice needs constraint="choice"')
 
     @property
     def input_names(self) -> tuple[str, ...]:
@@ -1176,6 +1177,16 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
     def constraint(self) -> str:
         return self.pipeline_config.constraint
 
+    @property
+    def sort_by_length(self) -> bool:
+        return self.pipeline_config.sort_by_length
+
+    @sort_by_length.setter
+    def sort_by_length(self, value: bool) -> None:
+        self.pipeline_config = dataclasses.replace(
+            self.pipeline_config, sort_by_length=value
+        )
+
     def get_generator_for_model(self, model: outlines.Model, *args, **kwargs):
         if self.constraint == "choice":
             return None
@@ -1271,7 +1282,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             'constraint="choice" generates one position at a time, because '
             "Outlines can't constrain each row of a batch to different moves; "
             f"batch_size={batch_size} only sets how many prompts are prepared "
-            "together. Pass batch_size=1 to silence this warning, or try "
+            "together. Pass batch_size=1 to silence this warning, or "
             "batched_choice=True to generate batches at once.",
             UserWarning,
             stacklevel=3,

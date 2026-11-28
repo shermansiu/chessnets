@@ -100,7 +100,7 @@ def test_choice_forward_builds_one_generator_per_position(monkeypatch):
     _install_choice_fakes(monkeypatch, generated, backends)
     pipeline = object.__new__(text.TextGenerationPipeline)
     pipeline.pipeline_config = text.TextGenerationPipelineConfig(
-        prompt_format="pgn_header", constraint="choice"
+        prompt_format="pgn_header", constraint="choice", batched_choice=False
     )
     pipeline.model = "model"
     pipeline.temperature = 0.25
@@ -191,11 +191,11 @@ def test_shuffled_legal_moves_are_the_same_in_every_run():
     )
 
 
-def test_batched_choice_needs_the_choice_constraint():
-    with pytest.raises(ValueError, match="batched_choice"):
-        text.TextGenerationPipelineConfig(batched_choice=True)
-    config = text.TextGenerationPipelineConfig(constraint="choice", batched_choice=True)
-    assert config.batched_choice
+def test_fast_options_are_the_default():
+    config = text.TextGenerationPipelineConfig()
+    assert config.batched_choice and config.sort_by_length
+    # batched_choice only affects constraint="choice", so regex accepts it.
+    assert text.TextGenerationPipelineConfig(constraint="regex").batched_choice
 
 
 def test_batched_choice_generates_the_batch_in_one_call():
@@ -240,8 +240,6 @@ def test_sort_by_length_batches_longest_first_and_keeps_input_order():
     pipeline.input_config = pipeline.pipeline_config.input_config
     pipeline.prompt_template = pipeline.pipeline_config.default_prompt_template
     pipeline.model = types.SimpleNamespace()  # no tokenizer: sort by characters
-    # Set by TransformersProbabilityPipeline.__init__, which isn't run here.
-    pipeline.sort_by_length = True
     batches = []
 
     def forward_batch(prompts, histories, legal_moves):
