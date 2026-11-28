@@ -6,6 +6,7 @@ import chess
 import pytest
 
 from chessnets.pipelines.text_generation import pipeline_text_generation as text
+from chessnets.utils import board_history
 
 NUMBERED_REGEX = re.compile(text.NUMBERED_MOVE_REGEX)
 PGN_CONTINUATION_REGEX = re.compile(text.PGN_CONTINUATION_MOVE_REGEX)
@@ -229,3 +230,38 @@ def test_batched_choice_generates_the_batch_in_one_call():
 
     assert results == ["e4", "e5"]
     assert calls == [(["first", "second"], {"temperature": 0.25})]
+
+
+def test_sort_by_length_batches_longest_first_and_keeps_input_order():
+    pipeline = object.__new__(text.TextGenerationPipeline)
+    pipeline.pipeline_config = text.TextGenerationPipelineConfig(
+        prompt_format="pgn_header", sort_by_length=True
+    )
+    pipeline.input_config = pipeline.pipeline_config.input_config
+    pipeline.prompt_template = pipeline.pipeline_config.default_prompt_template
+    pipeline.model = types.SimpleNamespace()  # no tokenizer: sort by characters
+    batches = []
+
+    def forward_batch(prompts, histories, legal_moves):
+        batches.append([len(prompt) for prompt in prompts])
+        # Answer each position with its first legal move, so the answers
+        # identify the positions.
+        return [
+            history.active_board.san(moves[0])
+            for history, moves in zip(histories, legal_moves)
+        ]
+
+    pipeline.forward_batch = forward_batch
+    pgns = ["1. e4", "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6", "1. d4 d5 2. c4", ""]
+
+    predictions = pipeline.make_prediction(
+        pgns, prompt=["p"] * len(pgns), batch_size=2, num_workers=0
+    ).predictions
+
+    lengths = [length for batch in batches for length in batch]
+    assert lengths == sorted(lengths, reverse=True)
+    expected = []
+    for pgn in pgns:
+        board = board_history.BoardHistory.from_pgn(pgn).active_board
+        expected.append(board.san(next(iter(board.legal_moves))))
+    assert [p.best_move_san for p in predictions] == expected

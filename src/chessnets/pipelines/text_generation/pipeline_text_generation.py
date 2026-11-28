@@ -185,6 +185,21 @@ WATERHORSE_CHESSGPT_GENERAL_POLICY_PROMPT_TEMPLATE = """In the following chess g
 Make the next move."""
 
 
+class _ReorderedDataset(torch.utils.data.Dataset):
+    """Serve another dataset's items in a given order."""
+
+    def __init__(self, dataset: torch.utils.data.Dataset, order: list[int]):
+        self.dataset = dataset
+        self.order = order
+        self.collate_fn = dataset.collate_fn
+
+    def __len__(self) -> int:
+        return len(self.order)
+
+    def __getitem__(self, idx: int):
+        return self.dataset[self.order[idx]]
+
+
 class _GeneralPolicyDataset(torch.utils.data.Dataset):
     """ChessGPT general-policy prompts: a PGN header with ratings and time control."""
 
@@ -947,16 +962,22 @@ class TextGenerationPipelineConfig:
     position at a time and ignores ``batch_size`` beyond preparing prompts
     (``batch_size="auto"`` uses 1).
 
-    ``batched_choice=True`` instead generates a whole batch at
-    once with ``"choice"``, constraining each row to its own legal moves.
+    ``batched_choice=True`` (experimental) instead generates a whole batch
+    at once with ``"choice"``, constraining each row to its own legal moves.
     Padding changes the model's numbers slightly, so a move can differ from
     an unbatched run where two moves are tied, or nearly tied, at the model's
     precision.
+
+    ``sort_by_length=True`` (experimental) batches prompts of similar length
+    together, longest first, so less of each batch is padding; predictions
+    come back in the input order. Batches change, so for the same reason a
+    few moves can differ from unsorted runs.
     """
 
     prompt_format: TextPromptFormat = TextPromptFormat.CHAT
     constraint: tp.Literal["regex", "choice"] = "regex"
     batched_choice: bool = False
+    sort_by_length: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.prompt_format, TextPromptFormat):
@@ -1047,6 +1068,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
         constraint: tp.Literal["regex", "choice"] | None = None,
         pipeline_config: TextGenerationPipelineConfig | None = None,
         batched_choice: bool | None = None,
+        sort_by_length: bool | None = None,
         **kwargs: tp.Any,
     ):
         if pipeline_config is None:
@@ -1057,8 +1079,11 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             )
         if batched_choice is not None:
             pipeline_config = dataclasses.replace(
-                pipeline_config,
-                batched_choice=batched_choice,
+                pipeline_config, batched_choice=batched_choice
+            )
+        if sort_by_length is not None:
+            pipeline_config = dataclasses.replace(
+                pipeline_config, sort_by_length=sort_by_length
             )
         # get_generator_for_model, called by the base class, reads the config.
         self.pipeline_config = pipeline_config
@@ -1278,7 +1303,11 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
                 prompt_template=self.prompt_template,
                 **common,
             )
-        return self._make_predictions_from_dataset(
+        order = None
+        if self.pipeline_config.sort_by_length and len(dataset) > 1:
+            order = self._longest_first(dataset)
+            dataset = _ReorderedDataset(dataset, order)
+        result = self._make_predictions_from_dataset(
             dataset,
             return_histories=return_histories,
             tqdm_leave=tqdm_leave,
@@ -1287,6 +1316,26 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             num_workers=resolved_workers,
             parallel_threshold=parallel_threshold,
         )
+        if order is not None:
+            predictions = [None] * len(order)
+            for position, prediction in zip(order, result.predictions):
+                predictions[position] = prediction
+            result.predictions = predictions
+        return result
+
+    def _longest_first(self, dataset: torch.utils.data.Dataset) -> list[int]:
+        """Return dataset indices ordered by prompt length in tokens, longest first.
+
+        Ties keep the input order. Longest first also means a batch size that
+        doesn't fit in memory fails on the first batch.
+        """
+        prompts = [dataset[index][0] for index in range(len(dataset))]
+        tokenizer = getattr(self.model, "hf_tokenizer", None)
+        if tokenizer is not None:
+            lengths = [len(ids) for ids in tokenizer(prompts)["input_ids"]]
+        else:
+            lengths = [len(prompt) for prompt in prompts]
+        return sorted(range(len(prompts)), key=lambda index: -lengths[index])
 
     @classmethod
     def post_process_success(
