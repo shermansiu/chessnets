@@ -9,13 +9,16 @@ the legal moves instead.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import dataclasses
 import enum
 import json
 import logging
+import os
 import textwrap
 import types
 import typing as tp
+import warnings
 
 import chess
 import dacite
@@ -182,6 +185,21 @@ WATERHORSE_CHESSGPT_GENERAL_POLICY_PROMPT_TEMPLATE = """In the following chess g
 Make the next move."""
 
 
+class _ReorderedDataset(torch.utils.data.Dataset):
+    """Serve another dataset's items in a given order."""
+
+    def __init__(self, dataset: torch.utils.data.Dataset, order: list[int]):
+        self.dataset = dataset
+        self.order = order
+        self.collate_fn = dataset.collate_fn
+
+    def __len__(self) -> int:
+        return len(self.order)
+
+    def __getitem__(self, idx: int):
+        return self.dataset[self.order[idx]]
+
+
 class _GeneralPolicyDataset(torch.utils.data.Dataset):
     """ChessGPT general-policy prompts: a PGN header with ratings and time control."""
 
@@ -272,6 +290,9 @@ class _GeneralPolicyDataset(torch.utils.data.Dataset):
 
 class OutlinesProbabilityPipeline(Pipeline):
     """Ask any Outlines model for a JSON probability for each legal move."""
+
+    sort_by_length: bool = False
+    """Batch prompts of similar length together; see :meth:`_longest_first`."""
 
     def __init__(
         self,
@@ -386,7 +407,55 @@ class OutlinesProbabilityPipeline(Pipeline):
         num_workers: int | None,
         parallel_threshold: int,
     ) -> ChessMovePredictionDataset:
-        """Run the shared batched inference and post-processing path."""
+        """Run the shared batched inference and post-processing path.
+
+        With :attr:`sort_by_length`, batches are formed from prompts of similar
+        length, and the predictions are returned in the dataset's order.
+        """
+        options = dict(
+            return_histories=return_histories,
+            tqdm_leave=tqdm_leave,
+            batch_size=batch_size,
+            persistent_workers=persistent_workers,
+            num_workers=num_workers,
+            parallel_threshold=parallel_threshold,
+        )
+        if not self.sort_by_length or len(dataset) <= 1:
+            return self._predict_in_order(dataset, **options)
+        order = self._longest_first(dataset)
+        result = self._predict_in_order(_ReorderedDataset(dataset, order), **options)
+        predictions = [None] * len(order)
+        for position, prediction in zip(order, result.predictions):
+            predictions[position] = prediction
+        result.predictions = predictions
+        return result
+
+    def _longest_first(self, dataset: torch.utils.data.Dataset) -> list[int]:
+        """Return dataset indices ordered by prompt length in tokens, longest first.
+
+        Batching prompts of similar length means less of each batch is padding.
+        Ties keep the input order, and longest first means a batch size that
+        doesn't fit in memory fails on the first batch.
+        """
+        prompts = [dataset[index][0] for index in range(len(dataset))]
+        tokenizer = getattr(self.model, "hf_tokenizer", None)
+        if tokenizer is not None:
+            lengths = [len(ids) for ids in tokenizer(prompts)["input_ids"]]
+        else:
+            lengths = [len(prompt) for prompt in prompts]
+        return sorted(range(len(prompts)), key=lambda index: -lengths[index])
+
+    def _predict_in_order(
+        self,
+        dataset: torch.utils.data.Dataset,
+        *,
+        return_histories: bool,
+        tqdm_leave: bool,
+        batch_size: int,
+        persistent_workers: bool,
+        num_workers: int | None,
+        parallel_threshold: int,
+    ) -> ChessMovePredictionDataset:
         raw_outputs = []
         for consolidated_prompts, histories, all_legal_moves in progress(
             iter_dataset_batches(
@@ -624,6 +693,12 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
     user message, as :func:`render_chat_prompt_template` does. The tokenizer
     is given no chat template, so Outlines never applies one again; Outlines
     1.2.10 and later otherwise wrap every prompt in it.
+
+    ``sort_by_length`` (experimental, on by default) batches prompts of
+    similar length together, longest first, so less of each batch is padding;
+    predictions come back in the input order. Batches change, so a few results
+    can differ slightly from unsorted runs; pass ``sort_by_length=False`` to
+    reproduce results made before it existed.
     """
 
     auto_batch_sizes = {"cpu": 4, "cuda": 8}
@@ -644,7 +719,9 @@ class TransformersProbabilityPipeline(OutlinesProbabilityPipeline):
         model_kwargs: dict[str, tp.Any] | None = None,
         tokenizer_kwargs: dict[str, tp.Any] | None = None,
         attn_implementation: str | None = "auto",
+        sort_by_length: bool = True,
     ):
+        self.sort_by_length = sort_by_length
         model, tokenizer = self.load_model_and_tokenizer(
             model_id=model_id,
             device=device,
@@ -939,12 +1016,29 @@ class TextGenerationPipelineConfig:
     """Options for :class:`TextGenerationPipeline`.
 
     ``constraint="regex"`` constrains generation to the format's move pattern;
-    ``"choice"`` restricts it to the legal moves in each position, one
-    generation call per position.
+    ``"choice"`` restricts it to the legal moves in each position.
+
+    Two experimental options, on by default, make generation faster:
+
+    - ``batched_choice`` generates a whole batch at once with ``"choice"``,
+      constraining each row to its own legal moves. It has no effect with
+      ``"regex"``. Without it, ``"choice"`` generates one position at a time,
+      because Outlines applies one constraint to a whole batch, and ignores
+      ``batch_size`` beyond preparing prompts (``batch_size="auto"`` uses 1).
+    - ``sort_by_length`` batches prompts of similar length together, longest
+      first, so less of each batch is padding; predictions come back in the
+      input order.
+
+    Both change how prompts are padded, which changes the model's numbers
+    slightly, so a move can differ from a run without them where two moves are
+    tied, or nearly tied, at the model's precision. Turn both off to reproduce
+    results made before they existed.
     """
 
     prompt_format: TextPromptFormat = TextPromptFormat.CHAT
     constraint: tp.Literal["regex", "choice"] = "regex"
+    batched_choice: bool = True
+    sort_by_length: bool = True
 
     def __post_init__(self) -> None:
         if not isinstance(self.prompt_format, TextPromptFormat):
@@ -1032,6 +1126,8 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
         input_config: PipelineInputConfig | None = None,
         constraint: tp.Literal["regex", "choice"] | None = None,
         pipeline_config: TextGenerationPipelineConfig | None = None,
+        batched_choice: bool | None = None,
+        sort_by_length: bool | None = None,
         **kwargs: tp.Any,
     ):
         if pipeline_config is None:
@@ -1040,8 +1136,23 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             pipeline_config = dataclasses.replace(
                 pipeline_config, constraint=constraint
             )
+        if batched_choice is not None:
+            pipeline_config = dataclasses.replace(
+                pipeline_config, batched_choice=batched_choice
+            )
+        if sort_by_length is not None:
+            pipeline_config = dataclasses.replace(
+                pipeline_config, sort_by_length=sort_by_length
+            )
         # get_generator_for_model, called by the base class, reads the config.
         self.pipeline_config = pipeline_config
+        if (
+            pipeline_config.constraint == "choice"
+            and not pipeline_config.batched_choice
+        ):
+            # Generation runs one position at a time, so larger batches only
+            # prepare more prompts together.
+            self.auto_batch_sizes = {"cpu": 1, "cuda": 1}
         if prompt_template is None:
             prompt_template = pipeline_config.default_prompt_template
         if chat_template is _FORMAT_DEFAULT:
@@ -1054,6 +1165,7 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
             prompt_template=prompt_template,
             chat_template=chat_template,
             input_config=input_config or pipeline_config.input_config,
+            sort_by_length=pipeline_config.sort_by_length,
             **kwargs,
         )
 
@@ -1064,6 +1176,16 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
     @property
     def constraint(self) -> str:
         return self.pipeline_config.constraint
+
+    @property
+    def sort_by_length(self) -> bool:
+        return self.pipeline_config.sort_by_length
+
+    @sort_by_length.setter
+    def sort_by_length(self, value: bool) -> None:
+        self.pipeline_config = dataclasses.replace(
+            self.pipeline_config, sort_by_length=value
+        )
 
     def get_generator_for_model(self, model: outlines.Model, *args, **kwargs):
         if self.constraint == "choice":
@@ -1096,14 +1218,75 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
                 legal_moves,
             )
 
+        choices = [
+            self.legal_move_choices(history, moves)
+            for history, moves in zip(histories, legal_moves)
+        ]
+        if self.pipeline_config.batched_choice:
+            return self._batched_choice_generator(choices).batch(
+                consolidated_prompts, temperature=self.temperature
+            )
+
         results = []
         for prompt, history, moves in zip(consolidated_prompts, histories, legal_moves):
-            generator = outlines.Generator(
-                self.model,
-                outlines.types.Choice(self.legal_move_choices(history, moves)),
-            )
+            generator = self._choice_generator(self.legal_move_choices(history, moves))
             results.append(generator(prompt, temperature=self.temperature))
         return results
+
+    def _choice_backend_for_model(self):
+        backend = getattr(self, "_choice_backend", None)
+        if backend is None:
+            backend = outlines.backends.OutlinesCoreBackend(self.model)
+            self._choice_backend = backend
+        return backend
+
+    def _batched_choice_generator(self, choices: list[list[str]]):
+        """Return a generator that restricts row ``i`` of a batch to ``choices[i]``."""
+        from outlines_core import Index
+
+        from .batched_choice import PerRowChoiceLogitsProcessor
+
+        vocabulary = self._choice_backend_for_model().vocabulary
+        regexes = [
+            outlines.types.dsl.to_regex(outlines.types.Choice(row)) for row in choices
+        ]
+        # Compiling an index releases the GIL, so threads compile in parallel.
+        workers = max(1, min(len(regexes), os.cpu_count() or 1, 16))
+        with concurrent.futures.ThreadPoolExecutor(workers) as executor:
+            indices = list(
+                executor.map(lambda regex: Index(regex, vocabulary), regexes)
+            )
+        return outlines.Generator(
+            self.model, processor=PerRowChoiceLogitsProcessor(indices)
+        )
+
+    def _choice_generator(self, choices: list[str]):
+        """Return a generator restricted to ``choices``.
+
+        This builds the same logits processor as
+        ``outlines.Generator(model, Choice(choices))``, but reuses one
+        Outlines Core backend, so the tokenizer's vocabulary is converted once
+        per pipeline instead of once per position.
+        """
+        backend = self._choice_backend_for_model()
+        regex = outlines.types.dsl.to_regex(outlines.types.Choice(choices))
+        return outlines.Generator(
+            self.model, processor=backend.get_regex_logits_processor(regex)
+        )
+
+    def _warn_choice_batch_size(self, batch_size: int) -> None:
+        if batch_size == 1 or getattr(self, "_warned_choice_batch_size", False):
+            return
+        self._warned_choice_batch_size = True
+        warnings.warn(
+            'constraint="choice" generates one position at a time, because '
+            "Outlines can't constrain each row of a batch to different moves; "
+            f"batch_size={batch_size} only sets how many prompts are prepared "
+            "together. Pass batch_size=1 to silence this warning, or "
+            "batched_choice=True to generate batches at once.",
+            UserWarning,
+            stacklevel=3,
+        )
 
     def make_prediction(
         self,
@@ -1131,6 +1314,8 @@ class TextGenerationPipeline(TransformersProbabilityPipeline):
         """
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
+        if self.constraint == "choice" and not self.pipeline_config.batched_choice:
+            self._warn_choice_batch_size(batch_size)
         values = bind_positional_inputs(
             self.pipeline_config.input_names,
             inputs,

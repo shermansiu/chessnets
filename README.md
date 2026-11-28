@@ -82,6 +82,12 @@ pipeline = AutoPipeline.from_pretrained(
 )
 ```
 
+Multiple-choice mode batches positions, each restricted to its own legal
+moves, and batches prompts of similar length together. Both are experimental
+and on by default; see the
+[ChessGPT page](https://github.com/shermansiu/chessnets/blob/main/docs/models/chessgpt.md)
+for how to turn them off to reproduce earlier results.
+
 ## Playing
 
 ```shell

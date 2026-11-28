@@ -14,6 +14,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   of memory, and keeps the size that fits; `last_batch_size` records it.
 - `TextGenerationPipeline`, configured by `TextGenerationPipelineConfig`
   (`prompt_format` and `constraint`), for any causal language model.
+- Two experimental options for the local text-generation pipelines, both on
+  by default:
+  - `batched_choice` generates a whole batch at once with
+    `constraint="choice"`, each position restricted to its own legal moves
+    (about 4× faster for ChessGPT on an RTX 5090).
+  - `sort_by_length` batches prompts of similar length together, longest
+    first, to reduce padding (another 1.1× with `batched_choice`; about
+    1.05× for the JSON `Waterhorse/chessgpt-chat-v1` profile).
+
+  Both change how prompts are padded, which can change a move where two are
+  tied at the model's precision. Pass `batched_choice=False,
+  sort_by_length=False` to reproduce results made without them.
 - `SECURITY.md`, which says how to report vulnerabilities privately and what
   ChessNets trusts when it loads checkpoints and plugins.
 - `py.typed`, so type checkers use ChessNets' annotations.
@@ -62,6 +74,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The `text-generation` extra requires Outlines 1.2.9 or later and no longer
   installs `packaging`.
 - Allie checkpoints load with `weights_only=True` on every PyTorch version.
+- `constraint="choice"` converts the tokenizer's vocabulary for Outlines once
+  per pipeline instead of once per position, which made each position several
+  times slower; its outputs are unchanged. With `batched_choice=False`, it
+  generates one position at a time, which is now documented: a `batch_size`
+  above 1 warns once, and `batch_size="auto"` uses 1.
 - When a text-generation or Carlini model's output can't be used, the legal
   move picked in its place is now the same in every run, and so is the move
   order that `should_shuffle_legal_moves=True` puts in the prompt. Both are

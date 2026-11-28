@@ -113,8 +113,17 @@ def install_fakes(monkeypatch, outlines_behavior):
         def __init__(self, items):
             self.desc = ["choice", list(items)]
 
+    class Backend:
+        # Stands for OutlinesCoreBackend; its processor is the Choice itself.
+        def __init__(self, model):
+            pass
+
+        def get_regex_logits_processor(self, regex):
+            return regex
+
     class Generator:
-        def __init__(self, model, output_type):
+        def __init__(self, model, output_type=None, *, processor=None):
+            output_type = output_type if processor is None else processor
             self.tokenizer = model.tokenizer
             self.desc = getattr(output_type, "desc", None) or output_type.__name__
             recorded.append(["generator", self.desc])
@@ -149,7 +158,12 @@ def install_fakes(monkeypatch, outlines_behavior):
                 model=model, tokenizer=tokenizer
             ),
             Generator=Generator,
-            types=types.SimpleNamespace(Regex=Regex, Choice=Choice),
+            backends=types.SimpleNamespace(OutlinesCoreBackend=Backend),
+            types=types.SimpleNamespace(
+                Regex=Regex,
+                Choice=Choice,
+                dsl=types.SimpleNamespace(to_regex=lambda term: term),
+            ),
             models=types.SimpleNamespace(
                 OpenAI=type("OpenAI", (), {}), AsyncOpenAI=type("AsyncOpenAI", (), {})
             ),
@@ -197,11 +211,31 @@ def _load(profile_id, **kwargs):
 def test_profile_sends_the_recorded_text(monkeypatch, name, choice, outlines_behavior):
     recorded = install_fakes(monkeypatch, outlines_behavior)
     profile_id, input_kind = PROFILES[name]
-    kwargs = {"constraint": "choice"} if choice else {}
+    # The recording predates batched_choice and sort_by_length, so it pins
+    # the calls made without them: one position at a time, in input order.
+    kwargs = {"sort_by_length": False}
+    if choice:
+        kwargs.update(constraint="choice", batched_choice=False)
 
     observed = observe(recorded, lambda: _load(profile_id, **kwargs), input_kind)
 
     assert observed == EXPECTED[name + ("+choice" if choice else "")]
+
+
+@pytest.mark.parametrize("outlines_behavior", OUTLINES_BEHAVIORS)
+@pytest.mark.parametrize("name", PROFILES)
+def test_sorted_batches_send_the_same_prompts(monkeypatch, name, outlines_behavior):
+    recorded = install_fakes(monkeypatch, outlines_behavior)
+    profile_id, input_kind = PROFILES[name]
+
+    observed = observe(recorded, lambda: _load(profile_id), input_kind)
+
+    def prompts(calls):
+        return sorted(p for call in calls if call[0] == "batch" for p in call[1])
+
+    expected = EXPECTED[name]["predict_calls"]
+    assert prompts(observed["predict_calls"]) == prompts(expected)
+    assert prompts(expected)
 
 
 @pytest.mark.parametrize("mode", ["default", "prompt", "time_control_and_elo"])

@@ -63,6 +63,13 @@ later calls start from the size that fit. Predictions do not depend on the
 batch size for the board-only models, but batched text generation pads its
 inputs, so a language model's probabilities can change slightly with it.
 
+Local text-generation pipelines also batch prompts of similar length
+together (`sort_by_length`), which reduces padding but means a few moves can
+differ from unsorted runs. `constraint="choice"` batches positions with a
+separate constraint for each row (`batched_choice`). Both are experimental and
+on by default; see the [ChessGPT page](models/chessgpt.md) for their speed,
+how often they change a move, and how to turn them off.
+
 LC0 converts PGNs and board histories eagerly. Consequently, its worker count
 applies to the conversion and post-processing stages; already-converted
 samples are batched locally without DataLoader workers. The `persistent_workers`
